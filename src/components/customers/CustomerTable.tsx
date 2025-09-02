@@ -36,9 +36,9 @@ export const CustomerTable = ({ customers, onEdit, onDelete, onView }: CustomerT
         <TableHeader>
           <TableRow>
             <TableHead>Customer Name</TableHead>
-            <TableHead>Contact</TableHead>
-            <TableHead>GSTIN</TableHead>
-            <TableHead>Location</TableHead>
+            <TableHead className="hidden md:table-cell">Contact</TableHead>
+            <TableHead className="hidden lg:table-cell">GSTIN</TableHead>
+            <TableHead className="hidden lg:table-cell">Location</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -47,9 +47,16 @@ export const CustomerTable = ({ customers, onEdit, onDelete, onView }: CustomerT
           {customers.map((customer) => (
             <TableRow key={customer.id}>
               <TableCell>
-                <div className="font-medium">{customer.name}</div>
+                <div>
+                  <div className="font-medium">{customer.name}</div>
+                  <div className="md:hidden text-sm text-muted-foreground">
+                    {customer.email && <div>{customer.email}</div>}
+                    {customer.phone && <div>{customer.phone}</div>}
+                    {customer.gstin && <div className="font-mono">{customer.gstin}</div>}
+                  </div>
+                </div>
               </TableCell>
-              <TableCell>
+              <TableCell className="hidden md:table-cell">
                 <div className="space-y-1">
                   {customer.email && (
                     <div className="flex items-center gap-1 text-sm text-muted-foreground">
@@ -65,14 +72,14 @@ export const CustomerTable = ({ customers, onEdit, onDelete, onView }: CustomerT
                   )}
                 </div>
               </TableCell>
-              <TableCell>
+              <TableCell className="hidden lg:table-cell">
                 {customer.gstin ? (
                   <span className="font-mono text-sm">{customer.gstin}</span>
                 ) : (
                   <span className="text-muted-foreground text-sm">Not provided</span>
                 )}
               </TableCell>
-              <TableCell>
+              <TableCell className="hidden lg:table-cell">
                 <div className="text-sm">
                   {customer.city && customer.state ? (
                     <div>{customer.city}, {customer.state}</div>
@@ -97,6 +104,7 @@ export const CustomerTable = ({ customers, onEdit, onDelete, onView }: CustomerT
                     variant="ghost"
                     size="sm"
                     onClick={() => onView(customer)}
+                    className="hidden sm:inline-flex"
                   >
                     <Eye className="h-4 w-4" />
                   </Button>

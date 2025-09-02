@@ -6,6 +6,11 @@ export interface Invoice {
   id: string;
   invoice_number: string;
   customer_id: string;
+  guest_name: string | null;
+  guest_email: string | null;
+  guest_phone: string | null;
+  guest_address: string | null;
+  guest_gstin: string | null;
   invoice_date: string;
   due_date: string | null;
   subtotal: number;
@@ -85,7 +90,12 @@ export const useCreateInvoice = () => {
 
   return useMutation({
     mutationFn: async (invoiceData: {
-      customer_id: string;
+      customer_id?: string;
+      guest_name?: string;
+      guest_email?: string;
+      guest_phone?: string;
+      guest_address?: string;
+      guest_gstin?: string;
       invoice_date: string;
       due_date?: string;
       notes?: string;
@@ -107,7 +117,12 @@ export const useCreateInvoice = () => {
         .from("invoices")
         .insert([{
           invoice_number: invoiceNumber,
-          customer_id: invoiceData.customer_id,
+          customer_id: invoiceData.customer_id || null,
+          guest_name: invoiceData.guest_name || null,
+          guest_email: invoiceData.guest_email || null,
+          guest_phone: invoiceData.guest_phone || null,
+          guest_address: invoiceData.guest_address || null,
+          guest_gstin: invoiceData.guest_gstin || null,
           invoice_date: invoiceData.invoice_date,
           due_date: invoiceData.due_date,
           notes: invoiceData.notes,

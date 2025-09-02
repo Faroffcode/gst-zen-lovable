@@ -29,10 +29,20 @@ export const Sidebar = ({ open }: SidebarProps) => {
   const currentPath = location.pathname;
 
   return (
-    <aside className={cn(
-      "fixed left-0 top-16 h-[calc(100vh-4rem)] bg-card border-r transition-all duration-300 z-30",
-      open ? "w-64" : "w-16"
-    )}>
+    <>
+      {/* Mobile overlay */}
+      {open && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-20 md:hidden"
+          onClick={() => {}} 
+        />
+      )}
+      
+      <aside className={cn(
+        "fixed left-0 top-16 h-[calc(100vh-4rem)] bg-card border-r transition-all duration-300 z-30",
+        "md:translate-x-0",
+        open ? "w-64 translate-x-0" : "w-16 -translate-x-full md:translate-x-0"
+      )}>
       <div className="flex flex-col h-full">
         {/* Logo/Brand */}
         <div className="p-4 border-b">
@@ -79,6 +89,7 @@ export const Sidebar = ({ open }: SidebarProps) => {
           </ul>
         </nav>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 };

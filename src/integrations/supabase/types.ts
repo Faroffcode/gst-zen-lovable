@@ -110,8 +110,13 @@ export type Database = {
       invoices: {
         Row: {
           created_at: string
-          customer_id: string
+          customer_id: string | null
           due_date: string | null
+          guest_address: string | null
+          guest_email: string | null
+          guest_gstin: string | null
+          guest_name: string | null
+          guest_phone: string | null
           id: string
           invoice_date: string
           invoice_number: string
@@ -124,8 +129,13 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          customer_id: string
+          customer_id?: string | null
           due_date?: string | null
+          guest_address?: string | null
+          guest_email?: string | null
+          guest_gstin?: string | null
+          guest_name?: string | null
+          guest_phone?: string | null
           id?: string
           invoice_date?: string
           invoice_number: string
@@ -138,8 +148,13 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          customer_id?: string
+          customer_id?: string | null
           due_date?: string | null
+          guest_address?: string | null
+          guest_email?: string | null
+          guest_gstin?: string | null
+          guest_name?: string | null
+          guest_phone?: string | null
           id?: string
           invoice_date?: string
           invoice_number?: string

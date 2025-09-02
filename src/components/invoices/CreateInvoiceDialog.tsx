@@ -5,15 +5,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, User, UserPlus } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCreateInvoice } from "@/hooks/useInvoices";
 import { useCustomers } from "@/hooks/useCustomers";
 import { useProducts } from "@/hooks/useProducts";
 
 export const CreateInvoiceDialog = () => {
   const [open, setOpen] = useState(false);
+  const [customerType, setCustomerType] = useState<"existing" | "guest">("existing");
   const [formData, setFormData] = useState({
     customer_id: "",
+    guest_name: "",
+    guest_email: "",
+    guest_phone: "",
+    guest_address: "",
+    guest_gstin: "",
     invoice_date: new Date().toISOString().split('T')[0],
     due_date: "",
     notes: "",
@@ -71,16 +78,34 @@ export const CreateInvoiceDialog = () => {
       return;
     }
 
-    createInvoice.mutate({
-      ...formData,
+    const invoiceData = {
+      invoice_date: formData.invoice_date,
       due_date: formData.due_date || undefined,
       notes: formData.notes || undefined,
       items: validItems,
-    }, {
+      ...(customerType === "existing" 
+        ? { customer_id: formData.customer_id }
+        : {
+            guest_name: formData.guest_name,
+            guest_email: formData.guest_email || undefined,
+            guest_phone: formData.guest_phone || undefined,
+            guest_address: formData.guest_address || undefined,
+            guest_gstin: formData.guest_gstin || undefined,
+          }
+      )
+    };
+
+    createInvoice.mutate(invoiceData, {
       onSuccess: () => {
         setOpen(false);
+        setCustomerType("existing");
         setFormData({
           customer_id: "",
+          guest_name: "",
+          guest_email: "",
+          guest_phone: "",
+          guest_address: "",
+          guest_gstin: "",
           invoice_date: new Date().toISOString().split('T')[0],
           due_date: "",
           notes: "",
@@ -108,40 +133,128 @@ export const CreateInvoiceDialog = () => {
           <DialogTitle>Create New Invoice</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Invoice Details */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="customer_id">Customer *</Label>
-              <Select
-                value={formData.customer_id}
-                onValueChange={(value) => setFormData({ ...formData, customer_id: value })}
-                required
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select customer" />
-                </SelectTrigger>
-                <SelectContent>
-                  {customers.map((customer) => (
-                    <SelectItem key={customer.id} value={customer.id}>
-                      {customer.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="invoice_date">Invoice Date *</Label>
-              <Input
-                id="invoice_date"
-                type="date"
-                value={formData.invoice_date}
-                onChange={(e) => setFormData({ ...formData, invoice_date: e.target.value })}
-                required
-              />
-            </div>
-          </div>
+          {/* Customer Selection */}
+          <Tabs value={customerType} onValueChange={(value) => setCustomerType(value as "existing" | "guest")}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="existing" className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                <span className="hidden sm:inline">Existing Customer</span>
+                <span className="sm:hidden">Existing</span>
+              </TabsTrigger>
+              <TabsTrigger value="guest" className="flex items-center gap-2">
+                <UserPlus className="h-4 w-4" />
+                <span className="hidden sm:inline">Guest Customer</span>
+                <span className="sm:hidden">Guest</span>
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="existing" className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="customer_id">Customer *</Label>
+                  <Select
+                    value={formData.customer_id}
+                    onValueChange={(value) => setFormData({ ...formData, customer_id: value })}
+                    required={customerType === "existing"}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select customer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {customers.map((customer) => (
+                        <SelectItem key={customer.id} value={customer.id}>
+                          {customer.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="invoice_date">Invoice Date *</Label>
+                  <Input
+                    id="invoice_date"
+                    type="date"
+                    value={formData.invoice_date}
+                    onChange={(e) => setFormData({ ...formData, invoice_date: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="guest" className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="guest_name">Customer Name *</Label>
+                  <Input
+                    id="guest_name"
+                    value={formData.guest_name}
+                    onChange={(e) => setFormData({ ...formData, guest_name: e.target.value })}
+                    placeholder="Enter customer name"
+                    required={customerType === "guest"}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="invoice_date_guest">Invoice Date *</Label>
+                  <Input
+                    id="invoice_date_guest"
+                    type="date"
+                    value={formData.invoice_date}
+                    onChange={(e) => setFormData({ ...formData, invoice_date: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="guest_email">Email</Label>
+                  <Input
+                    id="guest_email"
+                    type="email"
+                    value={formData.guest_email}
+                    onChange={(e) => setFormData({ ...formData, guest_email: e.target.value })}
+                    placeholder="customer@example.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="guest_phone">Phone</Label>
+                  <Input
+                    id="guest_phone"
+                    value={formData.guest_phone}
+                    onChange={(e) => setFormData({ ...formData, guest_phone: e.target.value })}
+                    placeholder="+91-9876543210"
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="guest_address">Address</Label>
+                  <Textarea
+                    id="guest_address"
+                    value={formData.guest_address}
+                    onChange={(e) => setFormData({ ...formData, guest_address: e.target.value })}
+                    placeholder="Customer address"
+                    rows={2}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="guest_gstin">GSTIN</Label>
+                  <Input
+                    id="guest_gstin"
+                    value={formData.guest_gstin}
+                    onChange={(e) => setFormData({ ...formData, guest_gstin: e.target.value.toUpperCase() })}
+                    placeholder="27ABCDE1234F1Z5"
+                    maxLength={15}
+                  />
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
 
-          <div className="grid grid-cols-2 gap-4">
+          {/* Additional Details */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="due_date">Due Date</Label>
               <Input
@@ -169,14 +282,15 @@ export const CreateInvoiceDialog = () => {
               <Label className="text-base font-semibold">Invoice Items</Label>
               <Button type="button" variant="outline" size="sm" onClick={addItem}>
                 <Plus className="h-4 w-4 mr-2" />
-                Add Item
+                <span className="hidden sm:inline">Add Item</span>
+                <span className="sm:hidden">Add</span>
               </Button>
             </div>
 
             <div className="space-y-3">
               {items.map((item, index) => (
-                <div key={index} className="grid grid-cols-12 gap-3 items-end p-4 border rounded-lg">
-                  <div className="col-span-4 space-y-2">
+                <div key={index} className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-end p-4 border rounded-lg">
+                  <div className="lg:col-span-4 space-y-2">
                     <Label>Product *</Label>
                     <Select
                       value={item.product_id}
@@ -189,14 +303,15 @@ export const CreateInvoiceDialog = () => {
                       <SelectContent>
                         {products.map((product) => (
                           <SelectItem key={product.id} value={product.id}>
-                            {product.name} ({product.sku})
+                            <span className="block truncate">{product.name}</span>
+                            <span className="text-xs text-muted-foreground">({product.sku})</span>
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                   
-                  <div className="col-span-2 space-y-2">
+                  <div className="lg:col-span-2 space-y-2">
                     <Label>Quantity *</Label>
                     <Input
                       type="number"
@@ -208,7 +323,7 @@ export const CreateInvoiceDialog = () => {
                     />
                   </div>
                   
-                  <div className="col-span-2 space-y-2">
+                  <div className="lg:col-span-2 space-y-2">
                     <Label>Unit Price (₹) *</Label>
                     <Input
                       type="number"
@@ -220,7 +335,7 @@ export const CreateInvoiceDialog = () => {
                     />
                   </div>
                   
-                  <div className="col-span-2 space-y-2">
+                  <div className="lg:col-span-2 space-y-2">
                     <Label>Tax Rate (%)</Label>
                     <Input
                       type="number"
@@ -232,7 +347,7 @@ export const CreateInvoiceDialog = () => {
                     />
                   </div>
                   
-                  <div className="col-span-2 space-y-2">
+                  <div className="lg:col-span-1 space-y-2">
                     <Label>Total</Label>
                     <div className="h-10 flex items-center px-3 border rounded-md bg-muted text-sm">
                       ₹{(item.quantity * item.unit_price * (1 + item.tax_rate / 100)).toFixed(2)}
@@ -240,7 +355,7 @@ export const CreateInvoiceDialog = () => {
                   </div>
                   
                   {items.length > 1 && (
-                    <div className="col-span-1 flex justify-center">
+                    <div className="lg:col-span-1 flex justify-center lg:justify-end">
                       <Button
                         type="button"
                         variant="ghost"
@@ -259,7 +374,7 @@ export const CreateInvoiceDialog = () => {
             {/* Invoice Summary */}
             <div className="border-t pt-4">
               <div className="flex justify-end">
-                <div className="w-64 space-y-2">
+                <div className="w-full sm:w-64 space-y-2">
                   {(() => {
                     const subtotal = items.reduce((sum, item) => 
                       sum + (item.quantity * item.unit_price), 0
@@ -291,7 +406,7 @@ export const CreateInvoiceDialog = () => {
             </div>
           </div>
 
-          <div className="flex justify-end space-x-4 pt-4">
+          <div className="flex flex-col sm:flex-row justify-end gap-4 pt-4">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>

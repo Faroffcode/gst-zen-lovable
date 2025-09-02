@@ -64,8 +64,8 @@ export const InvoiceTable = ({ invoices, onEdit, onDelete, onView }: InvoiceTabl
           <TableRow>
             <TableHead>Invoice #</TableHead>
             <TableHead>Customer</TableHead>
-            <TableHead>Date</TableHead>
-            <TableHead>Due Date</TableHead>
+            <TableHead className="hidden md:table-cell">Date</TableHead>
+            <TableHead className="hidden lg:table-cell">Due Date</TableHead>
             <TableHead className="text-right">Amount</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
@@ -75,20 +75,27 @@ export const InvoiceTable = ({ invoices, onEdit, onDelete, onView }: InvoiceTabl
           {invoices.map((invoice) => (
             <TableRow key={invoice.id}>
               <TableCell>
-                <div className="font-mono font-medium">{invoice.invoice_number}</div>
+                <div>
+                  <div className="font-mono font-medium">{invoice.invoice_number}</div>
+                  <div className="md:hidden text-sm text-muted-foreground">
+                    {formatDate(invoice.invoice_date)}
+                  </div>
+                </div>
               </TableCell>
               <TableCell>
                 <div>
-                  <div className="font-medium">{invoice.customer?.name}</div>
-                  {invoice.customer?.gstin && (
+                  <div className="font-medium">
+                    {invoice.customer?.name || invoice.guest_name || "Guest Customer"}
+                  </div>
+                  {(invoice.customer?.gstin || invoice.guest_gstin) && (
                     <div className="text-sm text-muted-foreground font-mono">
-                      {invoice.customer.gstin}
+                      {invoice.customer?.gstin || invoice.guest_gstin}
                     </div>
                   )}
                 </div>
               </TableCell>
-              <TableCell>{formatDate(invoice.invoice_date)}</TableCell>
-              <TableCell>
+              <TableCell className="hidden md:table-cell">{formatDate(invoice.invoice_date)}</TableCell>
+              <TableCell className="hidden lg:table-cell">
                 {invoice.due_date ? formatDate(invoice.due_date) : '-'}
               </TableCell>
               <TableCell className="text-right font-medium">
@@ -105,6 +112,7 @@ export const InvoiceTable = ({ invoices, onEdit, onDelete, onView }: InvoiceTabl
                     variant="ghost"
                     size="sm"
                     onClick={() => onView(invoice)}
+                    className="hidden sm:inline-flex"
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
@@ -112,6 +120,7 @@ export const InvoiceTable = ({ invoices, onEdit, onDelete, onView }: InvoiceTabl
                     variant="ghost"
                     size="sm"
                     onClick={() => {}}
+                    className="hidden sm:inline-flex"
                   >
                     <Download className="h-4 w-4" />
                   </Button>
