@@ -122,12 +122,32 @@ export const useDeleteProduct = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      // First check if product is referenced in any invoices
+      const { data: invoiceItems, error: checkError } = await supabase
+        .from("invoice_items")
+        .select("id, invoice_id")
+        .eq("product_id", id)
+        .limit(1);
+      
+      if (checkError) throw checkError;
+      
+      if (invoiceItems && invoiceItems.length > 0) {
+        throw new Error("Cannot delete product that is referenced in existing invoices. Please remove it from all invoices first.");
+      }
+      
+      // If no references, proceed with deletion
       const { error } = await supabase
         .from("products")
         .delete()
         .eq("id", id);
       
-      if (error) throw error;
+      if (error) {
+        // Handle specific foreign key constraint errors
+        if (error.code === '23503') {
+          throw new Error("Cannot delete product as it is being used in invoices or other records. Please remove all references first.");
+        }
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
@@ -137,9 +157,22 @@ export const useDeleteProduct = () => {
       });
     },
     onError: (error: any) => {
+      console.error('Product deletion error:', error);
+      let errorMessage = "Failed to delete product";
+      
+      if (error.message.includes("referenced in existing invoices")) {
+        errorMessage = "Cannot delete product that is used in invoices";
+      } else if (error.message.includes("being used in invoices")) {
+        errorMessage = "Product is referenced in invoices and cannot be deleted";
+      } else if (error.code === '23503') {
+        errorMessage = "Product cannot be deleted as it's referenced in other records";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
-        title: "Error",
-        description: error.message || "Failed to delete product",
+        title: "Unable to Delete Product",
+        description: errorMessage,
         variant: "destructive",
       });
     },

@@ -1,0 +1,17 @@
+{
+  "name": "BIO TECH CENTRE",
+  "short_name": "BIO TECH CENTRE",
+  "description": "Modern GST compliant business management solution for inventory, customers, and invoicing",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ],
+  "theme_color": "#8B5CF6",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "start_url": "/",
+  "scope": "/"
+}

@@ -103,12 +103,32 @@ export const useDeleteCustomer = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      // First check if customer is referenced in any invoices
+      const { data: invoices, error: checkError } = await supabase
+        .from("invoices")
+        .select("id, invoice_number")
+        .eq("customer_id", id)
+        .limit(1);
+      
+      if (checkError) throw checkError;
+      
+      if (invoices && invoices.length > 0) {
+        throw new Error("Cannot delete customer that has existing invoices. Please delete all invoices for this customer first.");
+      }
+      
+      // If no references, proceed with deletion
       const { error } = await supabase
         .from("customers")
         .delete()
         .eq("id", id);
       
-      if (error) throw error;
+      if (error) {
+        // Handle specific foreign key constraint errors
+        if (error.code === '23503') {
+          throw new Error("Cannot delete customer as they have associated invoices or other records. Please remove all references first.");
+        }
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
@@ -118,9 +138,22 @@ export const useDeleteCustomer = () => {
       });
     },
     onError: (error: any) => {
+      console.error('Customer deletion error:', error);
+      let errorMessage = "Failed to delete customer";
+      
+      if (error.message.includes("existing invoices")) {
+        errorMessage = "Cannot delete customer with existing invoices";
+      } else if (error.message.includes("associated invoices")) {
+        errorMessage = "Customer has associated records and cannot be deleted";
+      } else if (error.code === '23503') {
+        errorMessage = "Customer cannot be deleted as they're referenced in other records";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
-        title: "Error",
-        description: error.message || "Failed to delete customer",
+        title: "Unable to Delete Customer",
+        description: errorMessage,
         variant: "destructive",
       });
     },

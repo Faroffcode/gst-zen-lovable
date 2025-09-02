@@ -2,37 +2,51 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, Search, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
 import { useCustomers, Customer } from "@/hooks/useCustomers";
 import { AddCustomerDialog } from "@/components/customers/AddCustomerDialog";
+import { EditCustomerDialog } from "@/components/customers/EditCustomerDialog";
+import { ViewCustomerDialog } from "@/components/customers/ViewCustomerDialog";
+import { DeleteCustomerDialog } from "@/components/customers/DeleteCustomerDialog";
 import { CustomerTable } from "@/components/customers/CustomerTable";
+import { CustomerStats } from "@/components/customers/CustomerStats";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const Customers = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [editCustomer, setEditCustomer] = useState<Customer | null>(null);
+  const [viewCustomer, setViewCustomer] = useState<Customer | null>(null);
+  const [deleteCustomer, setDeleteCustomer] = useState<Customer | null>(null);
+  
   const { data: customers = [], isLoading } = useCustomers();
 
-  // Filter customers by search query
-  const filteredCustomers = customers.filter(customer =>
-    customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (customer.email && customer.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (customer.phone && customer.phone.includes(searchQuery)) ||
-    (customer.gstin && customer.gstin.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  // Filter customers by search query and status
+  const filteredCustomers = customers.filter(customer => {
+    const matchesSearch = customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (customer.email && customer.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (customer.phone && customer.phone.includes(searchQuery)) ||
+      (customer.gstin && customer.gstin.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    const matchesStatus = statusFilter === "all" || customer.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
 
   const handleEdit = (customer: Customer) => {
-    // TODO: Implement edit functionality
-    console.log("Edit customer:", customer);
+    setEditCustomer(customer);
   };
 
   const handleDelete = (customerId: string) => {
-    // TODO: Implement delete functionality
-    console.log("Delete customer:", customerId);
+    const customer = customers.find(c => c.id === customerId);
+    if (customer) {
+      setDeleteCustomer(customer);
+    }
   };
 
   const handleView = (customer: Customer) => {
-    // TODO: Implement view functionality
-    console.log("View customer:", customer);
+    setViewCustomer(customer);
   };
 
   if (isLoading) {
@@ -62,6 +76,9 @@ const Customers = () => {
         <AddCustomerDialog />
       </div>
 
+      {/* Customer Statistics */}
+      <CustomerStats customers={customers} />
+
       <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
         <div className="relative flex-1 sm:max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -72,9 +89,19 @@ const Customers = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-full sm:w-40">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="inactive">Inactive</SelectItem>
+          </SelectContent>
+        </Select>
         <Button variant="outline" className="w-full sm:w-auto">
           <Filter className="h-4 w-4 mr-2" />
-          Filters
+          Export
         </Button>
       </div>
 
@@ -110,6 +137,26 @@ const Customers = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Dialogs */}
+      <EditCustomerDialog
+        customer={editCustomer}
+        open={!!editCustomer}
+        onOpenChange={(open) => !open && setEditCustomer(null)}
+      />
+      
+      <ViewCustomerDialog
+        customer={viewCustomer}
+        open={!!viewCustomer}
+        onOpenChange={(open) => !open && setViewCustomer(null)}
+        onEdit={handleEdit}
+      />
+      
+      <DeleteCustomerDialog
+        customer={deleteCustomer}
+        open={!!deleteCustomer}
+        onOpenChange={(open) => !open && setDeleteCustomer(null)}
+      />
     </div>
   );
 };
