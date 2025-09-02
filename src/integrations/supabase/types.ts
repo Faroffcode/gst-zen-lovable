@@ -14,7 +14,95 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      products: {
+        Row: {
+          category: string
+          created_at: string
+          current_stock: number
+          hsn_code: string | null
+          id: string
+          min_stock: number
+          name: string
+          sku: string
+          status: string
+          tax_rate: number
+          unit: string
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          current_stock?: number
+          hsn_code?: string | null
+          id?: string
+          min_stock?: number
+          name: string
+          sku: string
+          status?: string
+          tax_rate?: number
+          unit?: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          current_stock?: number
+          hsn_code?: string | null
+          id?: string
+          min_stock?: number
+          name?: string
+          sku?: string
+          status?: string
+          tax_rate?: number
+          unit?: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      stock_ledger: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          product_id: string
+          quantity_delta: number
+          reference_no: string | null
+          transaction_type: string
+          unit_cost: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          product_id: string
+          quantity_delta: number
+          reference_no?: string | null
+          transaction_type: string
+          unit_cost?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          product_id?: string
+          quantity_delta?: number
+          reference_no?: string | null
+          transaction_type?: string
+          unit_cost?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_ledger_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
