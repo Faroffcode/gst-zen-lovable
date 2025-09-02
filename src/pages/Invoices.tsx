@@ -3,14 +3,24 @@ import { Button } from "@/components/ui/button";
 import { FileText, Search, Filter, Download } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
-import { useInvoices, Invoice } from "@/hooks/useInvoices";
+import { useInvoices, Invoice, useInvoice } from "@/hooks/useInvoices";
 import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
 import { InvoiceTable } from "@/components/invoices/InvoiceTable";
+import { ViewInvoiceDialog } from "@/components/invoices/ViewInvoiceDialog";
+import { EditInvoiceDialog } from "@/components/invoices/EditInvoiceDialog";
+import { DeleteInvoiceDialog } from "@/components/invoices/DeleteInvoiceDialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { generateInvoicePDF, downloadInvoiceHTML } from "@/lib/invoice-pdf";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Invoices = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [viewInvoice, setViewInvoice] = useState<Invoice | null>(null);
+  const [editInvoice, setEditInvoice] = useState<Invoice | null>(null);
+  const [deleteInvoice, setDeleteInvoice] = useState<{ id: string; number: string } | null>(null);
   const { data: invoices = [], isLoading } = useInvoices();
+  const { toast } = useToast();
 
   // Filter invoices by search query
   const filteredInvoices = invoices.filter(invoice =>
@@ -20,18 +30,66 @@ const Invoices = () => {
   );
 
   const handleEdit = (invoice: Invoice) => {
-    // TODO: Implement edit functionality
-    console.log("Edit invoice:", invoice);
+    setEditInvoice(invoice);
   };
 
   const handleDelete = (invoiceId: string) => {
-    // TODO: Implement delete functionality
-    console.log("Delete invoice:", invoiceId);
+    const invoice = invoices.find(inv => inv.id === invoiceId);
+    if (invoice) {
+      setDeleteInvoice({ 
+        id: invoiceId, 
+        number: invoice.invoice_number 
+      });
+    }
   };
 
   const handleView = (invoice: Invoice) => {
-    // TODO: Implement view functionality
-    console.log("View invoice:", invoice);
+    setViewInvoice(invoice);
+  };
+
+  const handleDownload = async (invoice: Invoice) => {
+    try {
+      // Fetch detailed invoice data including items
+      const { data: detailedInvoice, error } = await supabase
+        .from("invoices")
+        .select(`
+          *,
+          customer:customers(*),
+          invoice_items(
+            *,
+            product:products(name, sku, unit)
+          )
+        `)
+        .eq("id", invoice.id)
+        .single();
+      
+      if (error || !detailedInvoice) {
+        throw new Error('Failed to fetch invoice details');
+      }
+
+      // Try to generate PDF, fallback to HTML if failed
+      try {
+        await generateInvoicePDF(detailedInvoice, detailedInvoice.invoice_items || []);
+        toast({
+          title: "Success",
+          description: "Invoice PDF is being generated...",
+        });
+      } catch (pdfError) {
+        console.warn('PDF generation failed, falling back to HTML:', pdfError);
+        downloadInvoiceHTML(detailedInvoice, detailedInvoice.invoice_items || []);
+        toast({
+          title: "Downloaded",
+          description: "Invoice downloaded as HTML file",
+        });
+      }
+    } catch (error: any) {
+      console.error('Download failed:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to download invoice",
+        variant: "destructive",
+      });
+    }
   };
 
   if (isLoading) {
@@ -109,10 +167,31 @@ const Invoices = () => {
               onEdit={handleEdit}
               onDelete={handleDelete}
               onView={handleView}
+              onDownload={handleDownload}
             />
           )}
         </CardContent>
       </Card>
+      
+      <ViewInvoiceDialog
+        open={!!viewInvoice}
+        onOpenChange={(open) => !open && setViewInvoice(null)}
+        invoice={viewInvoice}
+        onDownload={handleDownload}
+      />
+      
+      <EditInvoiceDialog
+        open={!!editInvoice}
+        onOpenChange={(open) => !open && setEditInvoice(null)}
+        invoice={editInvoice}
+      />
+      
+      <DeleteInvoiceDialog
+        open={!!deleteInvoice}
+        onOpenChange={(open) => !open && setDeleteInvoice(null)}
+        invoiceId={deleteInvoice?.id || null}
+        invoiceNumber={deleteInvoice?.number || null}
+      />
     </div>
   );
 };

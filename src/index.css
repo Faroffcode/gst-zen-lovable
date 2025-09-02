@@ -120,3 +120,107 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Print styles for invoice PDFs with Bio Tech Centre branding */
+@media print {
+  @page {
+    margin: 20mm;
+    size: A4;
+  }
+  
+  body {
+    background: white !important;
+    color: #1e293b !important;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  
+  .print\:hidden {
+    display: none !important;
+  }
+  
+  .print\:block {
+    display: block !important;
+  }
+  
+  .print\:bg-white {
+    background: white !important;
+  }
+  
+  .print\:text-black {
+    color: #1e293b !important;
+  }
+  
+  .print\:border {
+    border: 1px solid #2563eb !important;
+  }
+  
+  .print\:border-gray-300 {
+    border-color: #2563eb !important;
+  }
+  
+  .print\:bg-gray-100 {
+    background: #f8fafc !important;
+  }
+  
+  .print\:fixed {
+    position: fixed !important;
+  }
+  
+  .print\:bottom-0 {
+    bottom: 0 !important;
+  }
+  
+  /* Bio Tech Centre specific print styles */
+  .invoice-header {
+    background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%) !important;
+    color: white !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  
+  .bio-tech-branding {
+    color: #2563eb !important;
+  }
+  
+  .status-badge {
+    border: 2px solid #2563eb !important;
+    color: #2563eb !important;
+  }
+  
+  .items-table-header {
+    background: #2563eb !important;
+    color: white !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  
+  .invoice-summary {
+    border: 2px solid #2563eb !important;
+    background: #eff6ff !important;
+  }
+  
+  .total-amount {
+    color: #2563eb !important;
+    font-weight: bold !important;
+  }
+  
+  .print\:bottom-0 {
+    bottom: 0 !important;
+  }
+  
+  /* Hide non-essential elements during print */
+  [role="dialog"] button:not(.print-keep),
+  .no-print {
+    display: none !important;
+  }
+  
+  /* Ensure proper page breaks */
+  .print-page-break {
+    page-break-before: always;
+  }
+  
+  .print-avoid-break {
+    page-break-inside: avoid;
+  }
+}

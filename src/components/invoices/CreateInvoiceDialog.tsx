@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ProductSearchInput } from "./ProductSearchInput";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,11 +23,11 @@ export const CreateInvoiceDialog = () => {
     guest_address: "",
     guest_gstin: "",
     invoice_date: new Date().toISOString().split('T')[0],
-    due_date: "",
     notes: "",
   });
   const [items, setItems] = useState([{
     product_id: "",
+    custom_product_name: "",
     quantity: 1,
     unit_price: 0,
     tax_rate: 18,
@@ -39,6 +40,7 @@ export const CreateInvoiceDialog = () => {
   const addItem = () => {
     setItems([...items, {
       product_id: "",
+      custom_product_name: "",
       quantity: 1,
       unit_price: 0,
       tax_rate: 18,
@@ -51,11 +53,34 @@ export const CreateInvoiceDialog = () => {
     }
   };
 
-  const updateItem = (index: number, field: string, value: any) => {
+  const handleProductChange = (index: number, productId: string, customName: string, autoFillData?: { unit_price: number; tax_rate: number }) => {
+    const updatedItems = [...items];
+    updatedItems[index] = {
+      ...updatedItems[index],
+      product_id: productId,
+      custom_product_name: customName
+    };
+    
+    // Auto-fill unit price and tax rate when product is selected
+    if (autoFillData) {
+      updatedItems[index].unit_price = autoFillData.unit_price;
+      updatedItems[index].tax_rate = autoFillData.tax_rate;
+    }
+    
+    setItems(updatedItems);
+  };
+
+  const updateItem = (index: number, field: string, value: any, autoFillData?: { unit_price: number; tax_rate: number }) => {
     const updatedItems = [...items];
     updatedItems[index] = { ...updatedItems[index], [field]: value };
     
-    // Auto-fill unit price when product is selected
+    // Auto-fill unit price and tax rate when product is selected
+    if (autoFillData) {
+      updatedItems[index].unit_price = autoFillData.unit_price;
+      updatedItems[index].tax_rate = autoFillData.tax_rate;
+    }
+    
+    // Legacy support for direct product_id selection
     if (field === 'product_id' && value) {
       const product = products.find(p => p.id === value);
       if (product) {
@@ -71,7 +96,7 @@ export const CreateInvoiceDialog = () => {
     e.preventDefault();
     
     const validItems = items.filter(item => 
-      item.product_id && item.quantity > 0 && item.unit_price > 0
+      (item.product_id || item.custom_product_name.trim()) && item.quantity > 0 && item.unit_price > 0
     );
     
     if (validItems.length === 0) {
@@ -80,7 +105,6 @@ export const CreateInvoiceDialog = () => {
 
     const invoiceData = {
       invoice_date: formData.invoice_date,
-      due_date: formData.due_date || undefined,
       notes: formData.notes || undefined,
       items: validItems,
       ...(customerType === "existing" 
@@ -107,11 +131,11 @@ export const CreateInvoiceDialog = () => {
           guest_address: "",
           guest_gstin: "",
           invoice_date: new Date().toISOString().split('T')[0],
-          due_date: "",
           notes: "",
         });
         setItems([{
           product_id: "",
+          custom_product_name: "",
           quantity: 1,
           unit_price: 0,
           tax_rate: 18,
@@ -254,16 +278,7 @@ export const CreateInvoiceDialog = () => {
           </Tabs>
 
           {/* Additional Details */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="due_date">Due Date</Label>
-              <Input
-                id="due_date"
-                type="date"
-                value={formData.due_date}
-                onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-              />
-            </div>
+          <div className="grid grid-cols-1 gap-4">
             <div className="space-y-2">
               <Label htmlFor="notes">Notes</Label>
               <Textarea
@@ -291,24 +306,17 @@ export const CreateInvoiceDialog = () => {
               {items.map((item, index) => (
                 <div key={index} className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-end p-4 border rounded-lg">
                   <div className="lg:col-span-4 space-y-2">
-                    <Label>Product *</Label>
-                    <Select
-                      value={item.product_id}
-                      onValueChange={(value) => updateItem(index, 'product_id', value)}
+                    <ProductSearchInput
+                      products={products}
+                      value={{
+                        product_id: item.product_id,
+                        custom_product_name: item.custom_product_name
+                      }}
+                      onChange={(productId, customName, autoFillData) => 
+                        handleProductChange(index, productId, customName, autoFillData)
+                      }
                       required
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select product" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {products.map((product) => (
-                          <SelectItem key={product.id} value={product.id}>
-                            <span className="block truncate">{product.name}</span>
-                            <span className="text-xs text-muted-foreground">({product.sku})</span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    />
                   </div>
                   
                   <div className="lg:col-span-2 space-y-2">
@@ -391,8 +399,12 @@ export const CreateInvoiceDialog = () => {
                           <span>₹{subtotal.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between text-sm">
-                          <span>Tax Amount:</span>
-                          <span>₹{taxAmount.toFixed(2)}</span>
+                          <span>CGST:</span>
+                          <span>₹{(taxAmount / 2).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>SGST:</span>
+                          <span>₹{(taxAmount / 2).toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between font-semibold border-t pt-2">
                           <span>Total:</span>

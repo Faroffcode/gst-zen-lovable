@@ -7,7 +7,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Edit, Trash2, Eye, Download } from "lucide-react";
 import { Invoice } from "@/hooks/useInvoices";
 
@@ -16,9 +15,10 @@ interface InvoiceTableProps {
   onEdit: (invoice: Invoice) => void;
   onDelete: (invoiceId: string) => void;
   onView: (invoice: Invoice) => void;
+  onDownload: (invoice: Invoice) => void;
 }
 
-export const InvoiceTable = ({ invoices, onEdit, onDelete, onView }: InvoiceTableProps) => {
+export const InvoiceTable = ({ invoices, onEdit, onDelete, onView, onDownload }: InvoiceTableProps) => {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -29,21 +29,6 @@ export const InvoiceTable = ({ invoices, onEdit, onDelete, onView }: InvoiceTabl
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-IN');
-  };
-
-  const getStatusVariant = (status: string) => {
-    switch (status) {
-      case 'paid':
-        return 'default';
-      case 'sent':
-        return 'secondary';
-      case 'draft':
-        return 'outline';
-      case 'cancelled':
-        return 'destructive';
-      default:
-        return 'outline';
-    }
   };
 
   if (invoices.length === 0) {
@@ -65,9 +50,7 @@ export const InvoiceTable = ({ invoices, onEdit, onDelete, onView }: InvoiceTabl
             <TableHead>Invoice #</TableHead>
             <TableHead>Customer</TableHead>
             <TableHead className="hidden md:table-cell">Date</TableHead>
-            <TableHead className="hidden lg:table-cell">Due Date</TableHead>
             <TableHead className="text-right">Amount</TableHead>
-            <TableHead>Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -95,16 +78,8 @@ export const InvoiceTable = ({ invoices, onEdit, onDelete, onView }: InvoiceTabl
                 </div>
               </TableCell>
               <TableCell className="hidden md:table-cell">{formatDate(invoice.invoice_date)}</TableCell>
-              <TableCell className="hidden lg:table-cell">
-                {invoice.due_date ? formatDate(invoice.due_date) : '-'}
-              </TableCell>
               <TableCell className="text-right font-medium">
                 {formatCurrency(invoice.total_amount)}
-              </TableCell>
-              <TableCell>
-                <Badge variant={getStatusVariant(invoice.status)}>
-                  {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
-                </Badge>
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex gap-2 justify-end">
@@ -119,8 +94,9 @@ export const InvoiceTable = ({ invoices, onEdit, onDelete, onView }: InvoiceTabl
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => {}}
+                    onClick={() => onDownload(invoice)}
                     className="hidden sm:inline-flex"
+                    title="Download PDF"
                   >
                     <Download className="h-4 w-4" />
                   </Button>

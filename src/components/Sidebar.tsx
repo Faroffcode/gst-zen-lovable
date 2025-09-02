@@ -4,6 +4,7 @@ import {
   Package,
   Users,
   FileText,
+  ShoppingCart,
   BarChart3,
   Settings,
   Menu,
@@ -18,6 +19,7 @@ interface SidebarProps {
 const navigationItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Inventory", url: "/inventory", icon: Package },
+  { title: "Purchase", url: "/purchase", icon: ShoppingCart },
   { title: "Customers", url: "/customers", icon: Users },
   { title: "Invoices", url: "/invoices", icon: FileText },
   { title: "Reports", url: "/reports", icon: BarChart3 },
