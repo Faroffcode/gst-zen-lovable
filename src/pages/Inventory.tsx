@@ -5,17 +5,23 @@ import { Search, Filter, Download, Package } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useProducts, useProductsByCategory } from "@/hooks/useProducts";
+import { useProducts, useProductsByCategory, Product } from "@/hooks/useProducts";
 import { InventoryStats } from "@/components/inventory/InventoryStats";
 import { CategoryTabs } from "@/components/inventory/CategoryTabs";
 import { InventoryTable } from "@/components/inventory/InventoryTable";
 import { AddProductDialog } from "@/components/inventory/AddProductDialog";
+import { EditProductDialog } from "@/components/inventory/EditProductDialog";
+import { ViewProductDialog } from "@/components/inventory/ViewProductDialog";
+import { DeleteConfirmDialog } from "@/components/inventory/DeleteConfirmDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const Inventory = () => {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [activeTab, setActiveTab] = useState("current-stock");
   const [searchQuery, setSearchQuery] = useState("");
+  const [editProduct, setEditProduct] = useState<Product | null>(null);
+  const [viewProduct, setViewProduct] = useState<Product | null>(null);
+  const [deleteProduct, setDeleteProduct] = useState<Product | null>(null);
 
   const { data: allProducts = [], isLoading } = useProducts();
   const { data: filteredProducts = [] } = useProductsByCategory(selectedCategory);
@@ -27,19 +33,19 @@ const Inventory = () => {
     (product.hsn_code && product.hsn_code.includes(searchQuery))
   );
 
-  const handleEdit = (product: any) => {
-    // TODO: Implement edit functionality
-    console.log("Edit product:", product);
+  const handleEdit = (product: Product) => {
+    setEditProduct(product);
   };
 
   const handleDelete = (productId: string) => {
-    // TODO: Implement delete functionality
-    console.log("Delete product:", productId);
+    const product = filteredProducts.find(p => p.id === productId);
+    if (product) {
+      setDeleteProduct(product);
+    }
   };
 
-  const handleView = (product: any) => {
-    // TODO: Implement view functionality
-    console.log("View product:", product);
+  const handleView = (product: Product) => {
+    setViewProduct(product);
   };
 
   if (isLoading) {
@@ -175,6 +181,25 @@ const Inventory = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Dialogs */}
+      <EditProductDialog
+        product={editProduct}
+        open={!!editProduct}
+        onOpenChange={(open) => !open && setEditProduct(null)}
+      />
+      
+      <ViewProductDialog
+        product={viewProduct}
+        open={!!viewProduct}
+        onOpenChange={(open) => !open && setViewProduct(null)}
+      />
+      
+      <DeleteConfirmDialog
+        product={deleteProduct}
+        open={!!deleteProduct}
+        onOpenChange={(open) => !open && setDeleteProduct(null)}
+      />
     </div>
   );
 };
