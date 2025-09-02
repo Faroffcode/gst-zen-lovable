@@ -1,0 +1,126 @@
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Edit, Trash2, Eye, Phone, Mail } from "lucide-react";
+import { Customer } from "@/hooks/useCustomers";
+
+interface CustomerTableProps {
+  customers: Customer[];
+  onEdit: (customer: Customer) => void;
+  onDelete: (customerId: string) => void;
+  onView: (customer: Customer) => void;
+}
+
+export const CustomerTable = ({ customers, onEdit, onDelete, onView }: CustomerTableProps) => {
+  if (customers.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-muted-foreground">
+          <div className="text-lg font-medium mb-2">No customers found</div>
+          <p>No customers match your search criteria.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Customer Name</TableHead>
+            <TableHead>Contact</TableHead>
+            <TableHead>GSTIN</TableHead>
+            <TableHead>Location</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {customers.map((customer) => (
+            <TableRow key={customer.id}>
+              <TableCell>
+                <div className="font-medium">{customer.name}</div>
+              </TableCell>
+              <TableCell>
+                <div className="space-y-1">
+                  {customer.email && (
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <Mail className="h-3 w-3" />
+                      {customer.email}
+                    </div>
+                  )}
+                  {customer.phone && (
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <Phone className="h-3 w-3" />
+                      {customer.phone}
+                    </div>
+                  )}
+                </div>
+              </TableCell>
+              <TableCell>
+                {customer.gstin ? (
+                  <span className="font-mono text-sm">{customer.gstin}</span>
+                ) : (
+                  <span className="text-muted-foreground text-sm">Not provided</span>
+                )}
+              </TableCell>
+              <TableCell>
+                <div className="text-sm">
+                  {customer.city && customer.state ? (
+                    <div>{customer.city}, {customer.state}</div>
+                  ) : customer.city || customer.state ? (
+                    <div>{customer.city || customer.state}</div>
+                  ) : (
+                    <span className="text-muted-foreground">Not provided</span>
+                  )}
+                  {customer.pincode && (
+                    <div className="text-muted-foreground">{customer.pincode}</div>
+                  )}
+                </div>
+              </TableCell>
+              <TableCell>
+                <Badge variant={customer.status === 'active' ? 'default' : 'secondary'}>
+                  {customer.status}
+                </Badge>
+              </TableCell>
+              <TableCell className="text-right">
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onView(customer)}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onEdit(customer)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onDelete(customer.id)}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+};

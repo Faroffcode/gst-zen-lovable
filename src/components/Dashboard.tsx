@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, TrendingDown, DollarSign, Package, Users, FileText, AlertTriangle, Eye } from "lucide-react";
+import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
 
 // Mock data - in real app this would come from your backend
 const mockData = {
@@ -106,10 +107,7 @@ export const Dashboard = () => {
             Welcome back! Here's what's happening with your business today.
           </p>
         </div>
-        <Button className="bg-gradient-primary hover:shadow-glow">
-          <FileText className="h-4 w-4 mr-2" />
-          Create Invoice
-        </Button>
+        <CreateInvoiceDialog />
       </div>
 
       {/* Stats Overview */}
