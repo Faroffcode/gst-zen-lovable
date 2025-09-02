@@ -64,15 +64,14 @@ export const AddProductDialog = () => {
           <DialogTitle>Add New Product</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="sku">SKU *</Label>
+              <Label htmlFor="sku">SKU</Label>
               <Input
                 id="sku"
                 value={formData.sku}
                 onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
                 placeholder="e.g., NPK001"
-                required
               />
             </div>
             <div className="space-y-2">
@@ -87,7 +86,7 @@ export const AddProductDialog = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="category">Category</Label>
               <Select
@@ -117,7 +116,7 @@ export const AddProductDialog = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="unit">Unit</Label>
               <Select
@@ -132,6 +131,7 @@ export const AddProductDialog = () => {
                   <SelectItem value="ltr">ltr</SelectItem>
                   <SelectItem value="pkt">pkt</SelectItem>
                   <SelectItem value="pcs">pcs</SelectItem>
+                  <SelectItem value="bag">bag</SelectItem>
                   <SelectItem value="box">box</SelectItem>
                 </SelectContent>
               </Select>
@@ -161,7 +161,7 @@ export const AddProductDialog = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="current_stock">Current Stock *</Label>
               <Input
@@ -185,7 +185,7 @@ export const AddProductDialog = () => {
             </div>
           </div>
 
-          <div className="flex justify-end space-x-4 pt-4">
+          <div className="flex flex-col sm:flex-row justify-end gap-4 pt-4">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>

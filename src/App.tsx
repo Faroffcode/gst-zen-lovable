@@ -8,6 +8,7 @@ import { Dashboard } from "./components/Dashboard";
 import Inventory from "./pages/Inventory";
 import Customers from "./pages/Customers";
 import Invoices from "./pages/Invoices";
+import Purchase from "./pages/Purchase";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="inventory" element={<Inventory />} />
             <Route path="customers" element={<Customers />} />
             <Route path="invoices" element={<Invoices />} />
+            <Route path="purchase" element={<Purchase />} />
             <Route path="reports" element={<Reports />} />
             <Route path="settings" element={<Settings />} />
           </Route>

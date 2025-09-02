@@ -34,12 +34,17 @@ export const Header = ({ sidebarOpen, setSidebarOpen }: HeaderProps) => {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search products, customers, orders..."
-              className="pl-10 w-80 bg-background/50"
+              className="pl-10 w-64 lg:w-80 bg-background/50"
             />
           </div>
         </div>
 
         <div className="flex items-center gap-4">
+          {/* Mobile search */}
+          <Button variant="ghost" size="sm" className="md:hidden">
+            <Search className="h-5 w-5" />
+          </Button>
+          
           <Button variant="ghost" size="sm" className="relative">
             <Bell className="h-5 w-5" />
             <span className="absolute -top-1 -right-1 h-4 w-4 bg-destructive text-destructive-foreground rounded-full text-xs flex items-center justify-center">

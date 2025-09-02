@@ -1,0 +1,433 @@
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ProductSearchInput } from "./ProductSearchInput";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Plus, Trash2, User, UserPlus } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useCreateInvoice } from "@/hooks/useInvoices";
+import { useCustomers } from "@/hooks/useCustomers";
+import { useProducts } from "@/hooks/useProducts";
+
+export const CreateInvoiceDialog = () => {
+  const [open, setOpen] = useState(false);
+  const [customerType, setCustomerType] = useState<"existing" | "guest">("existing");
+  const [formData, setFormData] = useState({
+    customer_id: "",
+    guest_name: "",
+    guest_email: "",
+    guest_phone: "",
+    guest_address: "",
+    guest_gstin: "",
+    invoice_date: new Date().toISOString().split('T')[0],
+    notes: "",
+  });
+  const [items, setItems] = useState([{
+    product_id: "",
+    custom_product_name: "",
+    quantity: 1,
+    unit_price: 0,
+    tax_rate: 18,
+  }]);
+
+  const createInvoice = useCreateInvoice();
+  const { data: customers = [] } = useCustomers();
+  const { data: products = [] } = useProducts();
+
+  const addItem = () => {
+    setItems([...items, {
+      product_id: "",
+      custom_product_name: "",
+      quantity: 1,
+      unit_price: 0,
+      tax_rate: 18,
+    }]);
+  };
+
+  const removeItem = (index: number) => {
+    if (items.length > 1) {
+      setItems(items.filter((_, i) => i !== index));
+    }
+  };
+
+  const handleProductChange = (index: number, productId: string, customName: string, autoFillData?: { unit_price: number; tax_rate: number }) => {
+    const updatedItems = [...items];
+    updatedItems[index] = {
+      ...updatedItems[index],
+      product_id: productId,
+      custom_product_name: customName
+    };
+    
+    // Auto-fill unit price and tax rate when product is selected
+    if (autoFillData) {
+      updatedItems[index].unit_price = autoFillData.unit_price;
+      updatedItems[index].tax_rate = autoFillData.tax_rate;
+    }
+    
+    setItems(updatedItems);
+  };
+
+  const updateItem = (index: number, field: string, value: any, autoFillData?: { unit_price: number; tax_rate: number }) => {
+    const updatedItems = [...items];
+    updatedItems[index] = { ...updatedItems[index], [field]: value };
+    
+    // Auto-fill unit price and tax rate when product is selected
+    if (autoFillData) {
+      updatedItems[index].unit_price = autoFillData.unit_price;
+      updatedItems[index].tax_rate = autoFillData.tax_rate;
+    }
+    
+    // Legacy support for direct product_id selection
+    if (field === 'product_id' && value) {
+      const product = products.find(p => p.id === value);
+      if (product) {
+        updatedItems[index].unit_price = product.unit_price;
+        updatedItems[index].tax_rate = product.tax_rate;
+      }
+    }
+    
+    setItems(updatedItems);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const validItems = items.filter(item => 
+      (item.product_id || item.custom_product_name.trim()) && item.quantity > 0 && item.unit_price > 0
+    );
+    
+    if (validItems.length === 0) {
+      return;
+    }
+
+    const invoiceData = {
+      invoice_date: formData.invoice_date,
+      notes: formData.notes || undefined,
+      items: validItems,
+      ...(customerType === "existing" 
+        ? { customer_id: formData.customer_id }
+        : {
+            guest_name: formData.guest_name,
+            guest_email: formData.guest_email || undefined,
+            guest_phone: formData.guest_phone || undefined,
+            guest_address: formData.guest_address || undefined,
+            guest_gstin: formData.guest_gstin || undefined,
+          }
+      )
+    };
+
+    createInvoice.mutate(invoiceData, {
+      onSuccess: () => {
+        setOpen(false);
+        setCustomerType("existing");
+        setFormData({
+          customer_id: "",
+          guest_name: "",
+          guest_email: "",
+          guest_phone: "",
+          guest_address: "",
+          guest_gstin: "",
+          invoice_date: new Date().toISOString().split('T')[0],
+          notes: "",
+        });
+        setItems([{
+          product_id: "",
+          custom_product_name: "",
+          quantity: 1,
+          unit_price: 0,
+          tax_rate: 18,
+        }]);
+      },
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button className="bg-gradient-primary hover:shadow-glow">
+          <Plus className="h-4 w-4 mr-2" />
+          Create Invoice
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Create New Invoice</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Customer Selection */}
+          <Tabs value={customerType} onValueChange={(value) => setCustomerType(value as "existing" | "guest")}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="existing" className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                <span className="hidden sm:inline">Existing Customer</span>
+                <span className="sm:hidden">Existing</span>
+              </TabsTrigger>
+              <TabsTrigger value="guest" className="flex items-center gap-2">
+                <UserPlus className="h-4 w-4" />
+                <span className="hidden sm:inline">Guest Customer</span>
+                <span className="sm:hidden">Guest</span>
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="existing" className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="customer_id">Customer *</Label>
+                  <Select
+                    value={formData.customer_id}
+                    onValueChange={(value) => setFormData({ ...formData, customer_id: value })}
+                    required={customerType === "existing"}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select customer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {customers.map((customer) => (
+                        <SelectItem key={customer.id} value={customer.id}>
+                          {customer.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="invoice_date">Invoice Date *</Label>
+                  <Input
+                    id="invoice_date"
+                    type="date"
+                    value={formData.invoice_date}
+                    onChange={(e) => setFormData({ ...formData, invoice_date: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="guest" className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="guest_name">Customer Name *</Label>
+                  <Input
+                    id="guest_name"
+                    value={formData.guest_name}
+                    onChange={(e) => setFormData({ ...formData, guest_name: e.target.value })}
+                    placeholder="Enter customer name"
+                    required={customerType === "guest"}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="invoice_date_guest">Invoice Date *</Label>
+                  <Input
+                    id="invoice_date_guest"
+                    type="date"
+                    value={formData.invoice_date}
+                    onChange={(e) => setFormData({ ...formData, invoice_date: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="guest_email">Email</Label>
+                  <Input
+                    id="guest_email"
+                    type="email"
+                    value={formData.guest_email}
+                    onChange={(e) => setFormData({ ...formData, guest_email: e.target.value })}
+                    placeholder="customer@example.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="guest_phone">Phone</Label>
+                  <Input
+                    id="guest_phone"
+                    value={formData.guest_phone}
+                    onChange={(e) => setFormData({ ...formData, guest_phone: e.target.value })}
+                    placeholder="+91-9876543210"
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="guest_address">Address</Label>
+                  <Textarea
+                    id="guest_address"
+                    value={formData.guest_address}
+                    onChange={(e) => setFormData({ ...formData, guest_address: e.target.value })}
+                    placeholder="Customer address"
+                    rows={2}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="guest_gstin">GSTIN</Label>
+                  <Input
+                    id="guest_gstin"
+                    value={formData.guest_gstin}
+                    onChange={(e) => setFormData({ ...formData, guest_gstin: e.target.value.toUpperCase() })}
+                    placeholder="27ABCDE1234F1Z5"
+                    maxLength={15}
+                  />
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+
+          {/* Additional Details */}
+          <div className="grid grid-cols-1 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                placeholder="Additional notes..."
+                rows={2}
+              />
+            </div>
+          </div>
+
+          {/* Invoice Items */}
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <Label className="text-base font-semibold">Invoice Items</Label>
+              <Button type="button" variant="outline" size="sm" onClick={addItem}>
+                <Plus className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Add Item</span>
+                <span className="sm:hidden">Add</span>
+              </Button>
+            </div>
+
+            <div className="space-y-3">
+              {items.map((item, index) => (
+                <div key={index} className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-end p-4 border rounded-lg">
+                  <div className="lg:col-span-4 space-y-2">
+                    <ProductSearchInput
+                      products={products}
+                      value={{
+                        product_id: item.product_id,
+                        custom_product_name: item.custom_product_name
+                      }}
+                      onChange={(productId, customName, autoFillData) => 
+                        handleProductChange(index, productId, customName, autoFillData)
+                      }
+                      required
+                    />
+                  </div>
+                  
+                  <div className="lg:col-span-2 space-y-2">
+                    <Label>Quantity *</Label>
+                    <Input
+                      type="number"
+                      step="0.001"
+                      min="0.001"
+                      value={item.quantity}
+                      onChange={(e) => updateItem(index, 'quantity', parseFloat(e.target.value) || 0)}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="lg:col-span-2 space-y-2">
+                    <Label>Unit Price (₹) *</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={item.unit_price}
+                      onChange={(e) => updateItem(index, 'unit_price', parseFloat(e.target.value) || 0)}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="lg:col-span-2 space-y-2">
+                    <Label>Tax Rate (%)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      value={item.tax_rate}
+                      onChange={(e) => updateItem(index, 'tax_rate', parseFloat(e.target.value) || 0)}
+                    />
+                  </div>
+                  
+                  <div className="lg:col-span-1 space-y-2">
+                    <Label>Total</Label>
+                    <div className="h-10 flex items-center px-3 border rounded-md bg-muted text-sm">
+                      ₹{(item.quantity * item.unit_price * (1 + item.tax_rate / 100)).toFixed(2)}
+                    </div>
+                  </div>
+                  
+                  {items.length > 1 && (
+                    <div className="lg:col-span-1 flex justify-center lg:justify-end">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeItem(index)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Invoice Summary */}
+            <div className="border-t pt-4">
+              <div className="flex justify-end">
+                <div className="w-full sm:w-64 space-y-2">
+                  {(() => {
+                    const subtotal = items.reduce((sum, item) => 
+                      sum + (item.quantity * item.unit_price), 0
+                    );
+                    const taxAmount = items.reduce((sum, item) => 
+                      sum + (item.quantity * item.unit_price * item.tax_rate / 100), 0
+                    );
+                    const total = subtotal + taxAmount;
+
+                    return (
+                      <>
+                        <div className="flex justify-between text-sm">
+                          <span>Subtotal:</span>
+                          <span>₹{subtotal.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>CGST:</span>
+                          <span>₹{(taxAmount / 2).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>SGST:</span>
+                          <span>₹{(taxAmount / 2).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between font-semibold border-t pt-2">
+                          <span>Total:</span>
+                          <span>₹{total.toFixed(2)}</span>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row justify-end gap-4 pt-4">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={createInvoice.isPending}>
+              {createInvoice.isPending ? "Creating..." : "Create Invoice"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};

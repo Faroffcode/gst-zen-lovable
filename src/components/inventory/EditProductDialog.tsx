@@ -72,13 +72,12 @@ export const EditProductDialog = ({ product, open, onOpenChange }: EditProductDi
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="sku">SKU *</Label>
+              <Label htmlFor="sku">SKU</Label>
               <Input
                 id="sku"
                 value={formData.sku}
                 onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
                 placeholder="e.g., NPK001"
-                required
               />
             </div>
             <div className="space-y-2">
@@ -138,6 +137,7 @@ export const EditProductDialog = ({ product, open, onOpenChange }: EditProductDi
                   <SelectItem value="ltr">ltr</SelectItem>
                   <SelectItem value="pkt">pkt</SelectItem>
                   <SelectItem value="pcs">pcs</SelectItem>
+                  <SelectItem value="bag">bag</SelectItem>
                   <SelectItem value="box">box</SelectItem>
                 </SelectContent>
               </Select>
