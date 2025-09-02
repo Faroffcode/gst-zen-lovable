@@ -160,12 +160,18 @@ export const CreateInvoiceDialog = () => {
           {/* Customer Selection */}
           <Tabs value={customerType} onValueChange={(value) => setCustomerType(value as "existing" | "guest")}>
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="existing" className="flex items-center gap-2">
+              <TabsTrigger 
+                value="existing" 
+                className="flex items-center gap-2 data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700 data-[state=active]:border-blue-300"
+              >
                 <User className="h-4 w-4" />
                 <span className="hidden sm:inline">Existing Customer</span>
                 <span className="sm:hidden">Existing</span>
               </TabsTrigger>
-              <TabsTrigger value="guest" className="flex items-center gap-2">
+              <TabsTrigger 
+                value="guest" 
+                className="flex items-center gap-2 data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700 data-[state=active]:border-blue-300"
+              >
                 <UserPlus className="h-4 w-4" />
                 <span className="hidden sm:inline">Guest Customer</span>
                 <span className="sm:hidden">Guest</span>
@@ -173,7 +179,17 @@ export const CreateInvoiceDialog = () => {
             </TabsList>
             
             <TabsContent value="existing" className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 transition-all duration-300">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <User className="h-4 w-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-blue-800">Existing Customer</h3>
+                    <p className="text-sm text-blue-600">Select from registered customers</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="customer_id">Customer *</Label>
                   <Select
@@ -204,9 +220,20 @@ export const CreateInvoiceDialog = () => {
                   />
                 </div>
               </div>
+              </div>
             </TabsContent>
             
             <TabsContent value="guest" className="space-y-4">
+              <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 transition-all duration-300">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <UserPlus className="h-4 w-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-blue-800">Guest Customer</h3>
+                    <p className="text-sm text-blue-600">Add new customer details</p>
+                  </div>
+                </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="guest_name">Customer Name *</Label>
@@ -274,6 +301,7 @@ export const CreateInvoiceDialog = () => {
                   />
                 </div>
               </div>
+              </div>
             </TabsContent>
           </Tabs>
 
@@ -303,112 +331,173 @@ export const CreateInvoiceDialog = () => {
             </div>
 
             <div className="space-y-3">
-              {items.map((item, index) => (
-                <div key={index} className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-end p-4 border rounded-lg">
-                  <div className="lg:col-span-4 space-y-2">
-                    <ProductSearchInput
-                      products={products}
-                      value={{
-                        product_id: item.product_id,
-                        custom_product_name: item.custom_product_name
-                      }}
-                      onChange={(productId, customName, autoFillData) => 
-                        handleProductChange(index, productId, customName, autoFillData)
-                      }
-                      required
-                    />
-                  </div>
-                  
-                  <div className="lg:col-span-2 space-y-2">
-                    <Label>Quantity *</Label>
-                    <Input
-                      type="number"
-                      step="0.001"
-                      min="0.001"
-                      value={item.quantity}
-                      onChange={(e) => updateItem(index, 'quantity', parseFloat(e.target.value) || 0)}
-                      required
-                    />
-                  </div>
-                  
-                  <div className="lg:col-span-2 space-y-2">
-                    <Label>Unit Price (₹) *</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={item.unit_price}
-                      onChange={(e) => updateItem(index, 'unit_price', parseFloat(e.target.value) || 0)}
-                      required
-                    />
-                  </div>
-                  
-                  <div className="lg:col-span-2 space-y-2">
-                    <Label>Tax Rate (%)</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      max="100"
-                      value={item.tax_rate}
-                      onChange={(e) => updateItem(index, 'tax_rate', parseFloat(e.target.value) || 0)}
-                    />
-                  </div>
-                  
-                  <div className="lg:col-span-1 space-y-2">
-                    <Label>Total</Label>
-                    <div className="h-10 flex items-center px-3 border rounded-md bg-muted text-sm">
-                      ₹{(item.quantity * item.unit_price * (1 + item.tax_rate / 100)).toFixed(2)}
+              {items.map((item, index) => {
+                const selectedProduct = products.find(p => p.id === item.product_id);
+                const rateWithoutGST = item.unit_price / (1 + item.tax_rate / 100);
+                const taxableValue = item.quantity * rateWithoutGST;
+                const totalAmount = item.quantity * item.unit_price;
+                const taxAmount = totalAmount - taxableValue;
+                const cgstAmount = taxAmount / 2;
+                const sgstAmount = taxAmount / 2;
+
+                return (
+                <div key={index} className="p-4 border rounded-lg space-y-4">
+                  {/* Product Selection Row */}
+                  <div className="grid grid-cols-1 lg:grid-cols-8 gap-3 items-end">
+                    <div className="lg:col-span-3 space-y-2">
+                      <Label>Product (Description of Goods) *</Label>
+                      <ProductSearchInput
+                        products={products}
+                        value={{
+                          product_id: item.product_id,
+                          custom_product_name: item.custom_product_name
+                        }}
+                        onChange={(productId, customName, autoFillData) => 
+                          handleProductChange(index, productId, customName, autoFillData)
+                        }
+                        required
+                      />
+                    </div>
+                    
+                    <div className="lg:col-span-1 space-y-2">
+                      <Label>HSN</Label>
+                      <div className="h-10 flex items-center px-3 border rounded-md bg-muted text-sm">
+                        {selectedProduct?.hsn_code || 'N/A'}
+                      </div>
+                    </div>
+                    
+                    <div className="lg:col-span-1 space-y-2">
+                      <Label>Unit</Label>
+                      <div className="h-10 flex items-center px-3 border rounded-md bg-muted text-sm">
+                        {selectedProduct?.unit || 'N/A'}
+                      </div>
+                    </div>
+                    
+                    <div className="lg:col-span-1 space-y-2">
+                      <Label>Quantity *</Label>
+                      <Input
+                        type="number"
+                        step="0.001"
+                        min="0.001"
+                        value={item.quantity}
+                        onChange={(e) => updateItem(index, 'quantity', parseFloat(e.target.value) || 0)}
+                        required
+                      />
+                    </div>
+                    
+                    <div className="lg:col-span-1 space-y-2">
+                      <Label>Rate/Unit (₹) *</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={item.unit_price}
+                        onChange={(e) => updateItem(index, 'unit_price', parseFloat(e.target.value) || 0)}
+                        required
+                      />
+                    </div>
+                    
+                    <div className="lg:col-span-1 space-y-2">
+                      <Label>Tax Rate (%)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                        value={item.tax_rate}
+                        onChange={(e) => updateItem(index, 'tax_rate', parseFloat(e.target.value) || 0)}
+                      />
                     </div>
                   </div>
                   
-                  {items.length > 1 && (
-                    <div className="lg:col-span-1 flex justify-center lg:justify-end">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeItem(index)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                  {/* GST Breakdown Row */}
+                  <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 pt-3 border-t bg-gray-50 rounded p-3">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-600">Total (Rate×Qty)</Label>
+                      <div className="h-8 flex items-center px-2 border rounded-md bg-white text-sm font-medium">
+                        ₹{totalAmount.toFixed(2)}
+                      </div>
                     </div>
-                  )}
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-600">Taxable Value</Label>
+                      <div className="h-8 flex items-center px-2 border rounded-md bg-white text-sm">
+                        ₹{taxableValue.toFixed(2)}
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-600">CGST ({(item.tax_rate/2).toFixed(1)}%)</Label>
+                      <div className="h-8 flex items-center px-2 border rounded-md bg-white text-sm">
+                        ₹{cgstAmount.toFixed(2)}
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-600">SGST ({(item.tax_rate/2).toFixed(1)}%)</Label>
+                      <div className="h-8 flex items-center px-2 border rounded-md bg-white text-sm">
+                        ₹{sgstAmount.toFixed(2)}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-end justify-center">
+                      {items.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeItem(index)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Invoice Summary */}
             <div className="border-t pt-4">
               <div className="flex justify-end">
-                <div className="w-full sm:w-64 space-y-2">
+                <div className="w-full sm:w-80 space-y-3">
                   {(() => {
-                    const subtotal = items.reduce((sum, item) => 
+                    // Calculate totals based on GST-compliant method
+                    const totalWithGST = items.reduce((sum, item) => 
                       sum + (item.quantity * item.unit_price), 0
                     );
-                    const taxAmount = items.reduce((sum, item) => 
-                      sum + (item.quantity * item.unit_price * item.tax_rate / 100), 0
-                    );
-                    const total = subtotal + taxAmount;
+                    
+                    const totalTaxableValue = items.reduce((sum, item) => {
+                      const rateWithoutGST = item.unit_price / (1 + item.tax_rate / 100);
+                      return sum + (item.quantity * rateWithoutGST);
+                    }, 0);
+                    
+                    const totalTaxAmount = totalWithGST - totalTaxableValue;
+                    const totalCGST = totalTaxAmount / 2;
+                    const totalSGST = totalTaxAmount / 2;
 
                     return (
                       <>
-                        <div className="flex justify-between text-sm">
-                          <span>Subtotal:</span>
-                          <span>₹{subtotal.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span>CGST:</span>
-                          <span>₹{(taxAmount / 2).toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span>SGST:</span>
-                          <span>₹{(taxAmount / 2).toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between font-semibold border-t pt-2">
-                          <span>Total:</span>
-                          <span>₹{total.toFixed(2)}</span>
+                        <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                          <h4 className="font-semibold text-gray-700 border-b pb-2">Tax Summary</h4>
+                          <div className="flex justify-between text-sm">
+                            <span>Total Taxable Value:</span>
+                            <span className="font-medium">₹{totalTaxableValue.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Total CGST:</span>
+                            <span className="font-medium">₹{totalCGST.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Total SGST:</span>
+                            <span className="font-medium">₹{totalSGST.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between font-semibold border-t pt-2 text-lg">
+                            <span>Grand Total:</span>
+                            <span className="text-blue-600">₹{totalWithGST.toFixed(2)}</span>
+                          </div>
                         </div>
                       </>
                     );

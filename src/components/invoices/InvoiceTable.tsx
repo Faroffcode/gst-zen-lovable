@@ -7,8 +7,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Eye, Download } from "lucide-react";
+import { Edit, Trash2, Eye, Download, CheckSquare, Square } from "lucide-react";
 import { Invoice } from "@/hooks/useInvoices";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface InvoiceTableProps {
   invoices: Invoice[];
@@ -16,9 +17,21 @@ interface InvoiceTableProps {
   onDelete: (invoiceId: string) => void;
   onView: (invoice: Invoice) => void;
   onDownload: (invoice: Invoice) => void;
+  selectedInvoices: Set<string>;
+  onSelectInvoice: (invoiceId: string) => void;
+  onSelectAll: () => void;
 }
 
-export const InvoiceTable = ({ invoices, onEdit, onDelete, onView, onDownload }: InvoiceTableProps) => {
+export const InvoiceTable = ({ 
+  invoices, 
+  onEdit, 
+  onDelete, 
+  onView, 
+  onDownload,
+  selectedInvoices,
+  onSelectInvoice,
+  onSelectAll
+}: InvoiceTableProps) => {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -47,6 +60,13 @@ export const InvoiceTable = ({ invoices, onEdit, onDelete, onView, onDownload }:
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-12">
+              <Checkbox
+                checked={selectedInvoices.size === invoices.length && invoices.length > 0}
+                onCheckedChange={onSelectAll}
+                aria-label="Select all invoices"
+              />
+            </TableHead>
             <TableHead>Invoice #</TableHead>
             <TableHead>Customer</TableHead>
             <TableHead className="hidden md:table-cell">Date</TableHead>
@@ -56,7 +76,14 @@ export const InvoiceTable = ({ invoices, onEdit, onDelete, onView, onDownload }:
         </TableHeader>
         <TableBody>
           {invoices.map((invoice) => (
-            <TableRow key={invoice.id}>
+            <TableRow key={invoice.id} className={selectedInvoices.has(invoice.id) ? "bg-blue-50" : ""}>
+              <TableCell>
+                <Checkbox
+                  checked={selectedInvoices.has(invoice.id)}
+                  onCheckedChange={() => onSelectInvoice(invoice.id)}
+                  aria-label={`Select invoice ${invoice.invoice_number}`}
+                />
+              </TableCell>
               <TableCell>
                 <div>
                   <div className="font-mono font-medium">{invoice.invoice_number}</div>
@@ -72,7 +99,17 @@ export const InvoiceTable = ({ invoices, onEdit, onDelete, onView, onDownload }:
                   </div>
                   {(invoice.customer?.gstin || invoice.guest_gstin) && (
                     <div className="text-sm text-muted-foreground font-mono">
-                      {invoice.customer?.gstin || invoice.guest_gstin}
+                      GSTIN: {invoice.customer?.gstin || invoice.guest_gstin}
+                    </div>
+                  )}
+                  {invoice.guest_email && (
+                    <div className="text-sm text-muted-foreground">
+                      {invoice.guest_email}
+                    </div>
+                  )}
+                  {invoice.guest_phone && (
+                    <div className="text-sm text-muted-foreground">
+                      {invoice.guest_phone}
                     </div>
                   )}
                 </div>

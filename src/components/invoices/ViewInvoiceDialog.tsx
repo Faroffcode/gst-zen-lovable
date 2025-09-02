@@ -1,6 +1,5 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Download, Printer, X } from "lucide-react";
 import { Invoice, InvoiceItem, useInvoice } from "@/hooks/useInvoices";
@@ -151,69 +150,118 @@ export const ViewInvoiceDialog = ({ open, onOpenChange, invoice, onDownload }: V
             <div className="mb-6">
               <h3 className="text-lg font-semibold mb-4 text-blue-800">Items</h3>
               <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white grid grid-cols-12 gap-4 p-4 text-sm font-medium print:bg-gray-100">
-                  <div className="col-span-5">Product</div>
-                  <div className="col-span-2 text-center">Quantity</div>
-                  <div className="col-span-2 text-right">Unit Price</div>
-                  <div className="col-span-1 text-center">Tax %</div>
-                  <div className="col-span-2 text-right">Total</div>
+                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white grid grid-cols-12 gap-2 p-3 text-xs font-medium print:bg-gray-100 print:text-black">
+                  <div className="col-span-3">Product (Description)</div>
+                  <div className="col-span-1 text-center">HSN</div>
+                  <div className="col-span-1 text-center">Unit</div>
+                  <div className="col-span-1 text-center">Qty</div>
+                  <div className="col-span-1 text-right">Rate/Unit</div>
+                  <div className="col-span-1 text-right">Total</div>
+                  <div className="col-span-1 text-right">Taxable Value</div>
+                  <div className="col-span-1 text-right">CGST</div>
+                  <div className="col-span-1 text-right">SGST</div>
+                  <div className="col-span-1 text-right">Amount</div>
                 </div>
-                {detailedInvoice.invoice_items?.map((item: InvoiceItem, index: number) => (
-                  <div key={item.id} className={`grid grid-cols-12 gap-4 p-4 text-sm hover:bg-blue-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                    <div className="col-span-5">
-                      <div className="font-medium">{item.product?.name}</div>
-                      <div className="text-muted-foreground text-xs">
-                        SKU: {item.product?.sku}
+                {detailedInvoice.invoice_items?.map((item: InvoiceItem, index: number) => {
+                  // Calculate GST breakdown for each item
+                  const rateWithoutGST = item.unit_price / (1 + item.tax_rate / 100);
+                  const taxableValue = item.quantity * rateWithoutGST;
+                  const totalAmount = item.quantity * item.unit_price;
+                  const taxAmount = totalAmount - taxableValue;
+                  const cgstAmount = taxAmount / 2;
+                  const sgstAmount = taxAmount / 2;
+                  
+                  return (
+                    <div key={item.id} className={`grid grid-cols-12 gap-2 p-3 text-xs hover:bg-blue-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                      <div className="col-span-3">
+                        <div className="font-medium text-sm">{item.product?.name || 'Custom Product'}</div>
+                        <div className="text-muted-foreground text-xs">
+                          SKU: {item.product?.sku || 'N/A'}
+                        </div>
+                      </div>
+                      <div className="col-span-1 text-center text-xs">
+                        {item.product?.hsn_code || 'N/A'}
+                      </div>
+                      <div className="col-span-1 text-center text-xs">
+                        {item.product?.unit || 'N/A'}
+                      </div>
+                      <div className="col-span-1 text-center text-xs">
+                        {item.quantity}
+                      </div>
+                      <div className="col-span-1 text-right text-xs">
+                        {formatCurrency(item.unit_price)}
+                      </div>
+                      <div className="col-span-1 text-right text-xs font-medium">
+                        {formatCurrency(totalAmount)}
+                      </div>
+                      <div className="col-span-1 text-right text-xs">
+                        {formatCurrency(taxableValue)}
+                      </div>
+                      <div className="col-span-1 text-right text-xs">
+                        {formatCurrency(cgstAmount)}
+                        <div className="text-muted-foreground">({(item.tax_rate/2).toFixed(1)}%)</div>
+                      </div>
+                      <div className="col-span-1 text-right text-xs">
+                        {formatCurrency(sgstAmount)}
+                        <div className="text-muted-foreground">({(item.tax_rate/2).toFixed(1)}%)</div>
+                      </div>
+                      <div className="col-span-1 text-right text-xs font-semibold">
+                        {formatCurrency(totalAmount)}
                       </div>
                     </div>
-                    <div className="col-span-2 text-center">
-                      {item.quantity} {item.product?.unit}
-                    </div>
-                    <div className="col-span-2 text-right">
-                      {formatCurrency(item.unit_price)}
-                    </div>
-                    <div className="col-span-1 text-center">
-                      {item.tax_rate}%
-                    </div>
-                    <div className="col-span-2 text-right font-medium">
-                      {formatCurrency(item.line_total)}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
             {/* Invoice Summary */}
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200 shadow-sm print:bg-white print:border print:border-gray-300">
               <div className="flex justify-end">
-                <div className="w-full max-w-sm space-y-3">
-                  <div className="flex justify-between text-sm text-gray-700">
-                    <span>Subtotal:</span>
-                    <span className="font-medium">{formatCurrency(detailedInvoice.subtotal)}</span>
-                  </div>
+                <div className="w-full max-w-md space-y-3">
                   {(() => {
-                    // Calculate CGST and SGST (split the tax amount equally)
-                    const cgstAmount = detailedInvoice.tax_amount / 2;
-                    const sgstAmount = detailedInvoice.tax_amount / 2;
+                    // Calculate GST-compliant totals from invoice items
+                    let totalTaxableValue = 0;
+                    let totalCGST = 0;
+                    let totalSGST = 0;
+                    let grandTotal = 0;
+                    
+                    detailedInvoice.invoice_items?.forEach((item: InvoiceItem) => {
+                      const rateWithoutGST = item.unit_price / (1 + item.tax_rate / 100);
+                      const itemTaxableValue = item.quantity * rateWithoutGST;
+                      const itemTotalAmount = item.quantity * item.unit_price;
+                      const itemTaxAmount = itemTotalAmount - itemTaxableValue;
+                      
+                      totalTaxableValue += itemTaxableValue;
+                      totalCGST += itemTaxAmount / 2;
+                      totalSGST += itemTaxAmount / 2;
+                      grandTotal += itemTotalAmount;
+                    });
                     
                     return (
                       <>
-                        <div className="flex justify-between text-sm text-gray-700">
-                          <span>CGST:</span>
-                          <span className="font-medium">{formatCurrency(cgstAmount)}</span>
-                        </div>
-                        <div className="flex justify-between text-sm text-gray-700">
-                          <span>SGST:</span>
-                          <span className="font-medium">{formatCurrency(sgstAmount)}</span>
+                        <h4 className="font-semibold text-blue-800 border-b-2 border-blue-300 pb-2 mb-3">Tax Summary</h4>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm text-gray-700">
+                            <span>Total Taxable Value:</span>
+                            <span className="font-medium">{formatCurrency(totalTaxableValue)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm text-gray-700">
+                            <span>Total CGST:</span>
+                            <span className="font-medium">{formatCurrency(totalCGST)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm text-gray-700">
+                            <span>Total SGST:</span>
+                            <span className="font-medium">{formatCurrency(totalSGST)}</span>
+                          </div>
+                          <Separator className="bg-blue-200" />
+                          <div className="flex justify-between text-lg font-bold text-blue-800">
+                            <span>Grand Total:</span>
+                            <span>{formatCurrency(detailedInvoice.total_amount)}</span>
+                          </div>
                         </div>
                       </>
                     );
                   })()}
-                  <Separator className="bg-blue-200" />
-                  <div className="flex justify-between text-lg font-bold text-blue-800">
-                    <span>Total Amount:</span>
-                    <span>{formatCurrency(detailedInvoice.total_amount)}</span>
-                  </div>
                 </div>
               </div>
             </div>

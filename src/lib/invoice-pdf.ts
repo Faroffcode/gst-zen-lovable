@@ -1,7 +1,10 @@
 import { Invoice, InvoiceItem } from "@/hooks/useInvoices";
+import { getInvoiceSettings, formatCurrency, formatDate, processCustomTemplate } from "./template-processor";
 
 // PDF generation utility using browser's print functionality and CSS
 export const generateInvoicePDF = async (invoice: Invoice, invoiceItems: InvoiceItem[]) => {
+  const settings = getInvoiceSettings();
+  
   // Create a new window for PDF generation
   const printWindow = window.open('', '_blank');
   
@@ -9,23 +12,35 @@ export const generateInvoicePDF = async (invoice: Invoice, invoiceItems: Invoice
     throw new Error('Unable to open print window. Please check your browser settings.');
   }
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 2,
-    }).format(amount);
-  };
+  let htmlContent: string;
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-IN', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
+  // Check if custom template should be used
+  if (settings.useCustomTemplate && settings.customTemplateFile) {
+    try {
+      htmlContent = await processCustomTemplate(settings.customTemplateFile, invoice, invoiceItems, settings);
+    } catch (error) {
+      console.error('Custom template processing failed:', error);
+      // Fall back to default template
+      htmlContent = generateDefaultTemplate(invoice, invoiceItems, settings);
+    }
+  } else {
+    htmlContent = generateDefaultTemplate(invoice, invoiceItems, settings);
+  }
 
-  // Generate HTML content for PDF
+  // Write content to the print window
+  printWindow.document.write(htmlContent);
+  printWindow.document.close();
+  
+  // Wait for content to load, then print
+  printWindow.onload = () => {
+    setTimeout(() => {
+      printWindow.print();
+    }, 500);
+  };
+};
+
+// Generate default template
+const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], settings: any): string => {
   const htmlContent = `
     <!DOCTYPE html>
     <html lang="en">
@@ -51,7 +66,7 @@ export const generateInvoicePDF = async (invoice: Invoice, invoiceItems: Invoice
         }
         
         .header {
-          background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
+          background: linear-gradient(135deg, ${settings.primaryColor} 0%, ${settings.primaryColor}dd 100%);
           color: white;
           padding: 30px;
           border-radius: 12px;
@@ -84,7 +99,7 @@ export const generateInvoicePDF = async (invoice: Invoice, invoiceItems: Invoice
         
         .company-logo {
           background: white;
-          color: #2563eb;
+          color: ${settings.primaryColor};
           padding: 8px 12px;
           border-radius: 8px;
           font-weight: bold;
@@ -117,7 +132,7 @@ export const generateInvoicePDF = async (invoice: Invoice, invoiceItems: Invoice
         
         .invoice-number {
           background: white;
-          color: #2563eb;
+          color: ${settings.primaryColor};
           padding: 8px 16px;
           border-radius: 6px;
           font-family: 'Courier New', monospace;
@@ -145,8 +160,8 @@ export const generateInvoicePDF = async (invoice: Invoice, invoiceItems: Invoice
         .section-title {
           font-size: 1.2em;
           font-weight: bold;
-          color: #2563eb;
-          border-bottom: 3px solid #2563eb;
+          color: ${settings.primaryColor};
+          border-bottom: 3px solid ${settings.primaryColor};
           padding-bottom: 8px;
           margin-bottom: 15px;
         }
@@ -197,13 +212,13 @@ export const generateInvoicePDF = async (invoice: Invoice, invoiceItems: Invoice
           width: 100%;
           border-collapse: collapse;
           margin-top: 15px;
-          border: 2px solid #2563eb;
+          border: 2px solid ${settings.primaryColor};
           border-radius: 8px;
           overflow: hidden;
         }
         
         .items-table th {
-          background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
+          background: linear-gradient(135deg, ${settings.primaryColor} 0%, ${settings.primaryColor}dd 100%);
           color: white;
           padding: 12px 8px;
           text-align: left;
@@ -322,18 +337,20 @@ export const generateInvoicePDF = async (invoice: Invoice, invoiceItems: Invoice
       <div class="header">
         <div class="header-content">
           <div class="company-info">
+            ${settings.showCompanyLogo ? `
             <div class="company-branding">
-              <div class="company-logo">BTC</div>
+              <div class="company-logo">${settings.logoText}</div>
               <div class="company-details">
-                <h2>Bio Tech Centre</h2>
-                <p class="company-tagline">Professional Bio-Technology Solutions</p>
+                <h2>${settings.companyName}</h2>
+                <p class="company-tagline">${settings.companyTagline}</p>
               </div>
             </div>
+            ` : ''}
             <h1>TAX INVOICE</h1>
             <div class="invoice-number">${invoice.invoice_number}</div>
           </div>
           <div class="invoice-meta">
-            <div class="total-amount">${formatCurrency(invoice.total_amount)}</div>
+            <div class="total-amount">${formatCurrency(invoice.total_amount, settings)}</div>
             <div style="color: #bfdbfe; font-size: 0.9em;">Total Amount</div>
           </div>
         </div>
@@ -366,7 +383,7 @@ export const generateInvoicePDF = async (invoice: Invoice, invoiceItems: Invoice
             </div>
             <div class="detail-row">
               <span class="detail-label">Invoice Date:</span>
-              <span class="detail-value">${formatDate(invoice.invoice_date)}</span>
+              <span class="detail-value">${formatDate(invoice.invoice_date, settings)}</span>
             </div>
           </div>
         </div>
@@ -377,48 +394,95 @@ export const generateInvoicePDF = async (invoice: Invoice, invoiceItems: Invoice
         <table class="items-table">
           <thead>
             <tr>
-              <th style="width: 40%;">Product</th>
-              <th style="width: 15%;" class="text-center">Quantity</th>
-              <th style="width: 15%;" class="text-right">Unit Price</th>
-              <th style="width: 10%;" class="text-center">Tax %</th>
-              <th style="width: 20%;" class="text-right">Total</th>
+              <th style="width: 25%;">Product (Description)</th>
+              <th style="width: 8%;">HSN</th>
+              <th style="width: 8%;">Unit</th>
+              <th style="width: 8%;">Qty</th>
+              <th style="width: 12%;">Rate/Unit</th>
+              <th style="width: 12%;">Total</th>
+              <th style="width: 12%;">Taxable Value</th>
+              <th style="width: 8%;">CGST</th>
+              <th style="width: 8%;">SGST</th>
             </tr>
           </thead>
           <tbody>
-            ${invoiceItems.map(item => `
-              <tr>
-                <td>
-                  <div class="product-name">${item.product?.name}</div>
-                  <div class="product-sku">SKU: ${item.product?.sku}</div>
-                </td>
-                <td class="text-center">${item.quantity} ${item.product?.unit}</td>
-                <td class="text-right">${formatCurrency(item.unit_price)}</td>
-                <td class="text-center">${item.tax_rate}%</td>
-                <td class="text-right">${formatCurrency(item.line_total)}</td>
-              </tr>
-            `).join('')}
+            ${invoiceItems.map(item => {
+              // Calculate GST breakdown for each item
+              const rateWithoutGST = item.unit_price / (1 + item.tax_rate / 100);
+              const taxableValue = item.quantity * rateWithoutGST;
+              const totalAmount = item.quantity * item.unit_price;
+              const taxAmount = totalAmount - taxableValue;
+              const cgstAmount = taxAmount / 2;
+              const sgstAmount = taxAmount / 2;
+              
+              return `
+                <tr>
+                  <td>
+                    <div class="product-name">${item.product?.name || 'Custom Product'}</div>
+                    <div class="product-sku">SKU: ${item.product?.sku || 'N/A'}</div>
+                  </td>
+                  <td class="text-center">${item.product?.hsn_code || 'N/A'}</td>
+                  <td class="text-center">${item.product?.unit || 'N/A'}</td>
+                  <td class="text-center">${item.quantity}</td>
+                  <td class="text-right">${formatCurrency(item.unit_price, settings)}</td>
+                  <td class="text-right">${formatCurrency(totalAmount, settings)}</td>
+                  <td class="text-right">${formatCurrency(taxableValue, settings)}</td>
+                  <td class="text-right">
+                    ${formatCurrency(cgstAmount, settings)}<br>
+                    <small>(${(item.tax_rate/2).toFixed(1)}%)</small>
+                  </td>
+                  <td class="text-right">
+                    ${formatCurrency(sgstAmount, settings)}<br>
+                    <small>(${(item.tax_rate/2).toFixed(1)}%)</small>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
           </tbody>
         </table>
       </div>
 
+
       <div class="summary-section">
         <div class="summary-content">
-          <div class="summary-row">
-            <span>Subtotal:</span>
-            <span>${formatCurrency(invoice.subtotal)}</span>
-          </div>
-          <div class="summary-row">
-            <span>CGST:</span>
-            <span>${formatCurrency(invoice.tax_amount / 2)}</span>
-          </div>
-          <div class="summary-row">
-            <span>SGST:</span>
-            <span>${formatCurrency(invoice.tax_amount / 2)}</span>
-          </div>
-          <div class="summary-row">
-            <span>Total Amount:</span>
-            <span>${formatCurrency(invoice.total_amount)}</span>
-          </div>
+          ${(() => {
+            // Calculate GST-compliant totals from invoice items
+            let totalTaxableValue = 0;
+            let totalCGST = 0;
+            let totalSGST = 0;
+            let grandTotal = 0;
+            
+            invoiceItems.forEach(item => {
+              const rateWithoutGST = item.unit_price / (1 + item.tax_rate / 100);
+              const itemTaxableValue = item.quantity * rateWithoutGST;
+              const itemTotalAmount = item.quantity * item.unit_price;
+              const itemTaxAmount = itemTotalAmount - itemTaxableValue;
+              
+              totalTaxableValue += itemTaxableValue;
+              totalCGST += itemTaxAmount / 2;
+              totalSGST += itemTaxAmount / 2;
+              grandTotal += itemTotalAmount;
+            });
+            
+            return `
+              <div class="summary-row">
+                <span>Total Taxable Value:</span>
+                <span>${formatCurrency(totalTaxableValue, settings)}</span>
+              </div>
+              <div class="summary-row">
+                <span>Total CGST:</span>
+                <span>${formatCurrency(totalCGST, settings)}</span>
+              </div>
+              <div class="summary-row">
+                <span>Total SGST:</span>
+                <span>${formatCurrency(totalSGST, settings)}</span>
+              </div>
+              <div class="summary-row">
+                <span>Grand Total:</span>
+                <span>${formatCurrency(invoice.total_amount, settings)}</span>
+              </div>
+            `;
+          })()}
         </div>
       </div>
 
@@ -429,14 +493,27 @@ export const generateInvoicePDF = async (invoice: Invoice, invoiceItems: Invoice
         </div>
       ` : ''}
 
+      ${settings.showFooter ? `
       <div class="footer">
-        <div class="footer-title">Thank you for choosing Bio Tech Centre!</div>
-        <div class="footer-subtitle">Your trusted partner in bio-technology solutions</div>
-        <div class="footer-date">Generated on ${new Date().toLocaleDateString('en-IN')}</div>
+        <div class="footer-title">${settings.footerText}</div>
+        <div class="footer-subtitle">${settings.companyTagline}</div>
+        <div class="footer-date">Generated on ${formatDate(new Date().toISOString(), settings)}</div>
       </div>
+      ` : ''}
     </body>
     </html>
   `;
+
+  return htmlContent;
+};
+
+// Write content to new window and print
+const printContent = (htmlContent: string) => {
+  const printWindow = window.open('', '_blank');
+  
+  if (!printWindow) {
+    throw new Error('Unable to open print window. Please check your browser settings.');
+  }
 
   // Write content to new window
   printWindow.document.write(htmlContent);
@@ -556,15 +633,18 @@ export const downloadInvoiceHTML = (invoice: Invoice, invoiceItems: InvoiceItem[
       </tr>
     </thead>
     <tbody>
-      ${invoiceItems.map(item => `
+      ${invoiceItems.map(item => {
+        const totalAmount = item.quantity * item.unit_price;
+        return `
         <tr>
           <td>${item.product?.name}<br><small>SKU: ${item.product?.sku}</small></td>
           <td>${item.quantity} ${item.product?.unit}</td>
           <td>${formatCurrency(item.unit_price)}</td>
           <td>${item.tax_rate}%</td>
-          <td>${formatCurrency(item.line_total)}</td>
+          <td>${formatCurrency(totalAmount)}</td>
         </tr>
-      `).join('')}
+      `;
+      }).join('')}
     </tbody>
   </table>
   
