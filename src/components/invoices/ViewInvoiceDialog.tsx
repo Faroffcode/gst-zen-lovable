@@ -41,12 +41,12 @@ export const ViewInvoiceDialog = ({ open, onOpenChange, invoice, onDownload }: V
     window.print();
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (detailedInvoice && onDownload) {
       onDownload(detailedInvoice);
     } else if (detailedInvoice) {
       // Direct download with cloud upload option
-      const uploadToCloud = isR2Configured();
+      const uploadToCloud = await isR2Configured();
       generateInvoicePDF(
         detailedInvoice, 
         detailedInvoice.invoice_items || [], 

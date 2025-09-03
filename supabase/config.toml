@@ -1,1 +1,4 @@
 project_id = "bcgbtaxhbthpqrhazdxc"
+
+[functions.invoice-storage]
+verify_jwt = false

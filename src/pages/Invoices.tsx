@@ -310,7 +310,7 @@ const Invoices = () => {
       }
 
       // Try to generate PDF, fallback to HTML if failed
-      const uploadToCloud = isR2Configured();
+      const uploadToCloud = await isR2Configured();
       
       const result = await generateInvoicePDF(
         detailedInvoice, 

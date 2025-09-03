@@ -1,17 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-
-// Cloudflare R2 configuration
-const r2Client = new S3Client({
-  region: 'auto',
-  endpoint: `https://${import.meta.env.VITE_CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-  credentials: {
-    accessKeyId: import.meta.env.VITE_CLOUDFLARE_ACCESS_KEY_ID,
-    secretAccessKey: import.meta.env.VITE_CLOUDFLARE_SECRET_ACCESS_KEY,
-  },
-});
-
-const BUCKET_NAME = import.meta.env.VITE_CLOUDFLARE_BUCKET_NAME;
+import { supabase } from "@/integrations/supabase/client";
 
 export interface UploadResult {
   success: boolean;
@@ -26,34 +13,29 @@ export const uploadInvoicePDF = async (
   pdfBlob: Blob
 ): Promise<UploadResult> => {
   try {
-    if (!BUCKET_NAME || !import.meta.env.VITE_CLOUDFLARE_ACCOUNT_ID) {
-      throw new Error('Cloudflare R2 configuration is missing');
-    }
-
-    const key = `invoices/${invoiceNumber}.pdf`;
+    // Convert blob to base64
     const buffer = await pdfBlob.arrayBuffer();
+    const uint8Array = new Uint8Array(buffer);
+    const base64String = btoa(String.fromCharCode.apply(null, Array.from(uint8Array)));
 
-    const command = new PutObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: key,
-      Body: new Uint8Array(buffer),
-      ContentType: 'application/pdf',
-      Metadata: {
-        'invoice-number': invoiceNumber,
-        'uploaded-at': new Date().toISOString(),
+    const { data, error } = await supabase.functions.invoke('invoice-storage', {
+      body: {
+        operation: 'upload',
+        invoiceNumber,
+        pdfData: base64String,
+        contentType: 'application/pdf',
       },
     });
 
-    await r2Client.send(command);
+    if (error) {
+      console.error('Failed to upload invoice to R2:', error);
+      return {
+        success: false,
+        error: error.message || 'Upload failed',
+      };
+    }
 
-    // Generate public URL
-    const publicUrl = `https://${BUCKET_NAME}.${import.meta.env.VITE_CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com/${key}`;
-
-    return {
-      success: true,
-      url: publicUrl,
-      key: key,
-    };
+    return data;
   } catch (error: any) {
     console.error('Failed to upload invoice to R2:', error);
     return {
@@ -69,19 +51,20 @@ export const getInvoiceDownloadUrl = async (
   expiresIn: number = 3600 // 1 hour default
 ): Promise<string | null> => {
   try {
-    if (!BUCKET_NAME || !import.meta.env.VITE_CLOUDFLARE_ACCOUNT_ID) {
-      throw new Error('Cloudflare R2 configuration is missing');
-    }
-
-    const key = `invoices/${invoiceNumber}.pdf`;
-    
-    const command = new GetObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: key,
+    const { data, error } = await supabase.functions.invoke('invoice-storage', {
+      body: {
+        operation: 'getDownloadUrl',
+        invoiceNumber,
+        expiresIn,
+      },
     });
 
-    const signedUrl = await getSignedUrl(r2Client, command, { expiresIn });
-    return signedUrl;
+    if (error) {
+      console.error('Failed to generate download URL:', error);
+      return null;
+    }
+
+    return data.success ? data.url : null;
   } catch (error: any) {
     console.error('Failed to generate download URL:', error);
     return null;
@@ -91,20 +74,19 @@ export const getInvoiceDownloadUrl = async (
 // Delete invoice from R2 storage
 export const deleteInvoicePDF = async (invoiceNumber: string): Promise<boolean> => {
   try {
-    if (!BUCKET_NAME || !import.meta.env.VITE_CLOUDFLARE_ACCOUNT_ID) {
-      throw new Error('Cloudflare R2 configuration is missing');
-    }
-
-    const key = `invoices/${invoiceNumber}.pdf`;
-    
-    const { DeleteObjectCommand } = await import('@aws-sdk/client-s3');
-    const command = new DeleteObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: key,
+    const { data, error } = await supabase.functions.invoke('invoice-storage', {
+      body: {
+        operation: 'delete',
+        invoiceNumber,
+      },
     });
 
-    await r2Client.send(command);
-    return true;
+    if (error) {
+      console.error('Failed to delete invoice from R2:', error);
+      return false;
+    }
+
+    return data.success || false;
   } catch (error: any) {
     console.error('Failed to delete invoice from R2:', error);
     return false;
@@ -112,13 +94,24 @@ export const deleteInvoicePDF = async (invoiceNumber: string): Promise<boolean> 
 };
 
 // Check if R2 is configured
-export const isR2Configured = (): boolean => {
-  return !!(
-    import.meta.env.VITE_CLOUDFLARE_ACCOUNT_ID &&
-    import.meta.env.VITE_CLOUDFLARE_ACCESS_KEY_ID &&
-    import.meta.env.VITE_CLOUDFLARE_SECRET_ACCESS_KEY &&
-    import.meta.env.VITE_CLOUDFLARE_BUCKET_NAME
-  );
+export const isR2Configured = async (): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase.functions.invoke('invoice-storage', {
+      body: {
+        operation: 'checkConfig',
+      },
+    });
+
+    if (error) {
+      console.error('Failed to check R2 configuration:', error);
+      return false;
+    }
+
+    return data.configured || false;
+  } catch (error: any) {
+    console.error('Failed to check R2 configuration:', error);
+    return false;
+  }
 };
 
 // Convert HTML content to PDF blob (using browser's print functionality)
