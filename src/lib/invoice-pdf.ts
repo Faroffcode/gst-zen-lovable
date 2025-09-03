@@ -1,17 +1,12 @@
 import { Invoice, InvoiceItem } from "@/hooks/useInvoices";
 import { getInvoiceSettings, formatCurrency, formatDate, processCustomTemplate } from "./template-processor";
+import { uploadInvoicePDF as uploadToR2, isR2Configured, htmlToPdfBlob } from "./cloudflare-r2";
+import { useToast } from "@/hooks/use-toast";
 
 // PDF generation utility using browser's print functionality and CSS
-export const generateInvoicePDF = async (invoice: Invoice, invoiceItems: InvoiceItem[]) => {
+export const generateInvoicePDF = async (invoice: Invoice, invoiceItems: InvoiceItem[], uploadToCloud: boolean = false) => {
   const settings = getInvoiceSettings();
   
-  // Create a new window for PDF generation
-  const printWindow = window.open('', '_blank');
-  
-  if (!printWindow) {
-    throw new Error('Unable to open print window. Please check your browser settings.');
-  }
-
   let htmlContent: string;
 
   // Check if custom template should be used
@@ -25,6 +20,44 @@ export const generateInvoicePDF = async (invoice: Invoice, invoiceItems: Invoice
     }
   } else {
     htmlContent = generateDefaultTemplate(invoice, invoiceItems, settings);
+  }
+
+  // If cloud upload is requested and R2 is configured, upload to R2
+  if (uploadToCloud && isR2Configured()) {
+    try {
+      // Convert HTML to PDF blob (simplified approach)
+      const pdfBlob = await htmlToPdfBlob(htmlContent);
+      
+      // Upload to Cloudflare R2
+      const uploadResult = await uploadToR2(invoice.invoice_number, pdfBlob);
+      
+      if (uploadResult.success) {
+        console.log('Invoice uploaded to R2:', uploadResult.url);
+        return { success: true, cloudUrl: uploadResult.url };
+      } else {
+        console.error('R2 upload failed:', uploadResult.error);
+        // Fall back to browser print
+        printInvoice(htmlContent);
+        return { success: true, cloudUrl: null };
+      }
+    } catch (error) {
+      console.error('Cloud upload failed, falling back to print:', error);
+      printInvoice(htmlContent);
+      return { success: true, cloudUrl: null };
+    }
+  } else {
+    // Standard browser print
+    printInvoice(htmlContent);
+    return { success: true, cloudUrl: null };
+  }
+};
+
+// Helper function to print invoice using browser
+const printInvoice = (htmlContent: string) => {
+  const printWindow = window.open('', '_blank');
+  
+  if (!printWindow) {
+    throw new Error('Unable to open print window. Please check your browser settings.');
   }
 
   // Write content to the print window

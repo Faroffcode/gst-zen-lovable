@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { getInvoiceSettings } from "@/lib/template-processor";
+import { isR2Configured } from "@/lib/cloudflare-r2";
 
 interface InvoiceSettings {
   companyName: string;
@@ -329,6 +330,22 @@ Note: Your custom template should be a PDF file with these placeholders.
               </CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Cloud Storage Status */}
+              <div className="col-span-1 md:col-span-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${isR2Configured() ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                  <span className="text-sm font-medium">
+                    Cloud Storage (Cloudflare R2): {isR2Configured() ? 'Configured' : 'Not Configured'}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {isR2Configured() 
+                    ? 'Invoices will be automatically uploaded to cloud storage for backup and sharing'
+                    : 'Configure Cloudflare R2 credentials to enable cloud storage for invoices'
+                  }
+                </p>
+              </div>
+              
               <div className="space-y-2">
                 <Label htmlFor="invoicePrefix">Invoice Prefix</Label>
                 <Input

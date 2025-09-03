@@ -4,6 +4,9 @@ import { Separator } from "@/components/ui/separator";
 import { Download, Printer, X } from "lucide-react";
 import { Invoice, InvoiceItem, useInvoice } from "@/hooks/useInvoices";
 import { Skeleton } from "@/components/ui/skeleton";
+import { generateInvoicePDF } from "@/lib/invoice-pdf";
+import { isR2Configured } from "@/lib/cloudflare-r2";
+import { useToast } from "@/hooks/use-toast";
 
 interface ViewInvoiceDialogProps {
   open: boolean;
@@ -14,6 +17,7 @@ interface ViewInvoiceDialogProps {
 
 export const ViewInvoiceDialog = ({ open, onOpenChange, invoice, onDownload }: ViewInvoiceDialogProps) => {
   const { data: detailedInvoice, isLoading } = useInvoice(invoice?.id || "");
+  const { toast } = useToast();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -38,8 +42,36 @@ export const ViewInvoiceDialog = ({ open, onOpenChange, invoice, onDownload }: V
   };
 
   const handleDownload = () => {
-    if (invoice && onDownload) {
-      onDownload(invoice);
+    if (detailedInvoice && onDownload) {
+      onDownload(detailedInvoice);
+    } else if (detailedInvoice) {
+      // Direct download with cloud upload option
+      const uploadToCloud = isR2Configured();
+      generateInvoicePDF(
+        detailedInvoice, 
+        detailedInvoice.invoice_items || [], 
+        uploadToCloud
+      ).then(result => {
+        if (result.success) {
+          if (result.cloudUrl) {
+            toast({
+              title: "Success",
+              description: "Invoice generated and uploaded to cloud storage",
+            });
+          } else {
+            toast({
+              title: "Success",
+              description: "Invoice PDF is being generated...",
+            });
+          }
+        }
+      }).catch(error => {
+        toast({
+          title: "Error",
+          description: "Failed to generate invoice PDF",
+          variant: "destructive",
+        });
+      });
     }
   };
 

@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { generateInvoicePDF, downloadInvoiceHTML } from "@/lib/invoice-pdf";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { isR2Configured } from "@/lib/cloudflare-r2";
 import {
   Dialog,
   DialogContent,
@@ -309,14 +310,28 @@ const Invoices = () => {
       }
 
       // Try to generate PDF, fallback to HTML if failed
-      try {
-        await generateInvoicePDF(detailedInvoice, detailedInvoice.invoice_items || []);
-        toast({
-          title: "Success",
-          description: "Invoice PDF is being generated...",
-        });
-      } catch (pdfError) {
-        console.warn('PDF generation failed, falling back to HTML:', pdfError);
+      const uploadToCloud = isR2Configured();
+      
+      const result = await generateInvoicePDF(
+        detailedInvoice, 
+        detailedInvoice.invoice_items || [], 
+        uploadToCloud
+      );
+      
+      if (result.success) {
+        if (result.cloudUrl) {
+          toast({
+            title: "Success",
+            description: "Invoice generated and uploaded to cloud storage",
+          });
+        } else {
+          toast({
+            title: "Success", 
+            description: "Invoice PDF is being generated...",
+          });
+        }
+      } else {
+        // Fallback to HTML download
         downloadInvoiceHTML(detailedInvoice, detailedInvoice.invoice_items || []);
         toast({
           title: "Downloaded",
