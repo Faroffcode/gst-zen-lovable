@@ -7,7 +7,6 @@ import {
   ShoppingCart,
   BarChart3,
   Settings,
-  Menu,
   Building2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -48,17 +47,20 @@ export const Sidebar = ({ open }: SidebarProps) => {
       <div className="flex flex-col h-full">
         {/* Logo/Brand */}
         <div className="p-4 border-b">
-          <div className="flex items-center gap-3">
+          <NavLink 
+            to="/" 
+            className="flex items-center gap-3 hover:bg-accent/50 rounded-lg p-2 transition-colors duration-200"
+          >
             <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
               <Building2 className="h-5 w-5 text-white" />
             </div>
             {open && (
               <div>
-                <h1 className="font-bold text-lg">GST Zen</h1>
-                <p className="text-xs text-muted-foreground">Invoice & Inventory</p>
+                <h1 className="font-bold text-lg hover:text-primary transition-colors">BIO TECH CENTRE</h1>
+                <p className="text-xs text-muted-foreground hover:text-primary/70 transition-colors">Invoice & Inventory</p>
               </div>
             )}
-          </div>
+          </NavLink>
         </div>
 
         {/* Navigation */}

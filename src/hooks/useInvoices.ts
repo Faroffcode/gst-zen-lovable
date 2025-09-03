@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useRecordSale, useRecordMultipleSales } from "@/hooks/useStockLedger";
 
 export interface Invoice {
   id: string;
@@ -37,6 +38,7 @@ export interface InvoiceItem {
     name: string;
     sku: string;
     unit: string;
+    hsn_code: string | null;
   };
 }
 
@@ -69,7 +71,7 @@ export const useInvoice = (id: string) => {
           customer:customers(*),
           invoice_items(
             *,
-            product:products(name, sku, unit)
+            product:products(name, sku, unit, hsn_code)
           )
         `)
         .eq("id", id)

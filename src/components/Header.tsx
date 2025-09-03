@@ -1,4 +1,4 @@
-import { Search, Bell, User, Menu } from "lucide-react";
+import { Search, User, Menu, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { usePasswordAccess } from "@/hooks/usePasswordAccess";
 
 interface HeaderProps {
   sidebarOpen: boolean;
@@ -17,6 +18,12 @@ interface HeaderProps {
 }
 
 export const Header = ({ sidebarOpen, setSidebarOpen }: HeaderProps) => {
+  const { revokeAccess } = usePasswordAccess();
+
+  const handleLockWebsite = () => {
+    revokeAccess();
+    // Page will automatically redirect to password screen
+  };
   return (
     <header className="fixed top-0 left-0 right-0 h-16 bg-card border-b z-40 px-6">
       <div className="flex items-center justify-between h-full">
@@ -44,13 +51,6 @@ export const Header = ({ sidebarOpen, setSidebarOpen }: HeaderProps) => {
           <Button variant="ghost" size="sm" className="md:hidden">
             <Search className="h-5 w-5" />
           </Button>
-          
-          <Button variant="ghost" size="sm" className="relative">
-            <Bell className="h-5 w-5" />
-            <span className="absolute -top-1 -right-1 h-4 w-4 bg-destructive text-destructive-foreground rounded-full text-xs flex items-center justify-center">
-              3
-            </span>
-          </Button>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -77,7 +77,10 @@ export const Header = ({ sidebarOpen, setSidebarOpen }: HeaderProps) => {
               <DropdownMenuItem>Company Settings</DropdownMenuItem>
               <DropdownMenuItem>Billing</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Log out</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLockWebsite} className="text-red-600">
+                <LogOut className="mr-2 h-4 w-4" />
+                Lock Website
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

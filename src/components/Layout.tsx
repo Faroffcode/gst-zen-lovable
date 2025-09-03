@@ -1,5 +1,4 @@
-import { useState } from "react";
-import React from "react";
+import { useState, useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
@@ -8,7 +7,7 @@ export const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Close sidebar on mobile by default
-  React.useEffect(() => {
+  useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 768) {
         setSidebarOpen(false);
