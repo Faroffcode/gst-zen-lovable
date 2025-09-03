@@ -90,7 +90,7 @@ export const processCustomTemplate = async (
     // 3. Replace placeholders with actual data
     // 4. Generate new PDF
     
-    console.log('Processing custom template:', templateFile.name);
+    // Processing custom template: templateFile.name
     
     // Placeholder for custom template processing
     return `
@@ -123,9 +123,9 @@ export const replacePlaceholders = (
     '{{INVOICE_NUMBER}}': invoice.invoice_number,
     '{{INVOICE_DATE}}': formatDate(invoice.invoice_date, settings),
     '{{CUSTOMER_NAME}}': invoice.customer?.name || invoice.guest_name || "Guest Customer",
-    '{{CUSTOMER_EMAIL}}': (invoice.customer as any)?.email || invoice.guest_email || '',
-    '{{CUSTOMER_PHONE}}': (invoice.customer as any)?.phone || invoice.guest_phone || '',
-    '{{CUSTOMER_ADDRESS}}': (invoice.customer as any)?.address || invoice.guest_address || '',
+    '{{CUSTOMER_EMAIL}}': (invoice.customer as { email?: string })?.email || invoice.guest_email || '',
+    '{{CUSTOMER_PHONE}}': (invoice.customer as { phone?: string })?.phone || invoice.guest_phone || '',
+    '{{CUSTOMER_ADDRESS}}': (invoice.customer as { address?: string })?.address || invoice.guest_address || '',
     '{{CUSTOMER_GSTIN}}': invoice.customer?.gstin || invoice.guest_gstin || '',
     '{{SUBTOTAL}}': formatCurrency(invoice.subtotal, settings),
     '{{TAX_AMOUNT}}': formatCurrency(invoice.tax_amount, settings),

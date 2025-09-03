@@ -90,7 +90,7 @@ export const DeleteConfirmDialog = ({ product, open, onOpenChange }: DeleteConfi
                     Cannot delete: Product is used in {invoiceReferences.length} invoice(s)
                   </div>
                   <div className="text-sm space-y-1">
-                    {invoiceReferences.slice(0, 3).map((ref: any) => (
+                    {invoiceReferences.slice(0, 3).map((ref: { id: string; invoices: { invoice_number: string } }) => (
                       <div key={ref.id}>
                         • Invoice {ref.invoices.invoice_number}
                       </div>

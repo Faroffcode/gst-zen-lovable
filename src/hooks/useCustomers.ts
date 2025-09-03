@@ -54,7 +54,7 @@ export const useAddCustomer = () => {
         description: "Customer added successfully",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Failed to add customer",
@@ -87,7 +87,7 @@ export const useUpdateCustomer = () => {
         description: "Customer updated successfully",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Failed to update customer",
@@ -137,7 +137,7 @@ export const useDeleteCustomer = () => {
         description: "Customer deleted successfully",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       console.error('Customer deletion error:', error);
       let errorMessage = "Failed to delete customer";
       

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useRecordSale, useRecordMultipleSales } from "@/hooks/useStockLedger";
+import { sendInvoiceToTelegram } from "@/lib/invoice-pdf";
 
 export interface Invoice {
   id: string;
@@ -143,10 +144,10 @@ export const useCreateInvoice = () => {
         }
         
         invoiceNumber = dbInvoiceNumber;
-        console.log('Generated invoice number using database function:', invoiceNumber);
+        // Generated invoice number using database function
       } catch (dbError) {
         // Fallback: Generate invoice number locally
-        console.warn('Database function failed, generating invoice number locally:', dbError);
+        // Database function failed, generating invoice number locally
         
         try {
           // Get existing invoice numbers to find the next number
@@ -157,7 +158,7 @@ export const useCreateInvoice = () => {
             .limit(1);
           
           if (fetchError) {
-            console.warn('Could not fetch existing invoices, starting from 1:', fetchError);
+            // Could not fetch existing invoices, starting from 1
           }
           
           let nextNumber = 1;
@@ -170,12 +171,12 @@ export const useCreateInvoice = () => {
           }
           
           invoiceNumber = `INV-${nextNumber.toString().padStart(4, '0')}`;
-          console.log('Generated invoice number locally:', invoiceNumber);
+          // Generated invoice number locally
         } catch (fallbackError) {
           // Final fallback: use timestamp
           const timestamp = Date.now().toString().slice(-4);
           invoiceNumber = `INV-${timestamp}`;
-          console.warn('Using timestamp-based invoice number:', invoiceNumber);
+          // Using timestamp-based invoice number
         }
       }
 
@@ -235,14 +236,81 @@ export const useCreateInvoice = () => {
 
       return invoice;
     },
-    onSuccess: () => {
+    onSuccess: async (invoice) => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
-      toast({
-        title: "Success",
-        description: "Invoice created successfully",
-      });
+      
+      // Check if Telegram integration is enabled
+      const storageSettings = localStorage.getItem('storageSettings');
+      if (storageSettings) {
+        try {
+          const settings = JSON.parse(storageSettings);
+          if (settings.enableCloudSync && settings.cloudProvider === 'telegram' && 
+              settings.telegramBotToken && settings.telegramChatId) {
+            
+            // Get invoice details with items for sending to Telegram
+            const { data: invoiceDetails, error: detailsError } = await supabase
+              .from("invoices")
+              .select(`
+                *,
+                customer:customers(*),
+                invoice_items(
+                  *,
+                  product:products(name, sku, unit, hsn_code)
+                )
+              `)
+              .eq("id", invoice.id)
+              .single();
+            
+            if (!detailsError && invoiceDetails) {
+              // Send invoice to Telegram
+              const success = await sendInvoiceToTelegram(
+                invoiceDetails,
+                invoiceDetails.invoice_items,
+                {
+                  telegramBotToken: settings.telegramBotToken,
+                  telegramChatId: settings.telegramChatId
+                }
+              );
+              
+              if (success) {
+                toast({
+                  title: "Success",
+                  description: "Invoice created and sent to Telegram successfully",
+                });
+              } else {
+                toast({
+                  title: "Partial Success",
+                  description: "Invoice created successfully, but failed to send to Telegram",
+                  variant: "destructive",
+                });
+              }
+            } else {
+              toast({
+                title: "Success",
+                description: "Invoice created successfully",
+              });
+            }
+          } else {
+            toast({
+              title: "Success",
+              description: "Invoice created successfully",
+            });
+          }
+        } catch (error) {
+          console.error('Error sending invoice to Telegram:', error);
+          toast({
+            title: "Success",
+            description: "Invoice created successfully",
+          });
+        }
+      } else {
+        toast({
+          title: "Success",
+          description: "Invoice created successfully",
+        });
+      }
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       console.error('Invoice creation failed:', error);
       console.error('Error details:', {
         message: error.message,
@@ -284,7 +352,7 @@ export const useUpdateInvoice = () => {
         description: "Invoice updated successfully",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Failed to update invoice",
@@ -318,8 +386,8 @@ export const useDeleteInvoice = () => {
       
       // Create inventory restoration transactions for products
       const inventoryRestorations = invoiceDetails.invoice_items
-        .filter((item: any) => item.product_id) // Only for actual products
-        .map((item: any) => ({
+        .filter((item: { product_id: string | null }) => item.product_id) // Only for actual products
+        .map((item: { product_id: string; quantity: number }) => ({
           product_id: item.product_id,
           transaction_type: "adjustment" as const,
           quantity_delta: item.quantity, // Positive to restore stock
@@ -354,7 +422,7 @@ export const useDeleteInvoice = () => {
         description: "Invoice deleted and inventory restored successfully",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Failed to delete invoice",

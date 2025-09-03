@@ -73,7 +73,7 @@ export const useAddProduct = () => {
         description: "Product added successfully",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Failed to add product",
@@ -106,7 +106,7 @@ export const useUpdateProduct = () => {
         description: "Product updated successfully",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Failed to update product",
@@ -156,7 +156,7 @@ export const useDeleteProduct = () => {
         description: "Product deleted successfully",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       console.error('Product deletion error:', error);
       let errorMessage = "Failed to delete product";
       

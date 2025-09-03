@@ -1,8 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Building2, FileText } from "lucide-react";
+import { Building2, FileText, Database } from "lucide-react";
 import CompanyProfileDialog from "@/components/CompanyProfileDialog";
 import InvoiceSettingsDialog from "@/components/InvoiceSettingsDialog";
+import StorageSettingsDialog from "@/components/StorageSettingsDialog";
 
 const Settings = () => {
   return (
@@ -16,7 +17,7 @@ const Settings = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card className="hover:shadow-elegant transition-all duration-300">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -44,6 +45,21 @@ const Settings = () => {
               Configure invoice templates, numbering, and PDF settings
             </p>
             <InvoiceSettingsDialog />
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-elegant transition-all duration-300">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Database className="h-5 w-5" />
+              Storage
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground mb-4">
+              Configure data storage, backup, and synchronization settings
+            </p>
+            <StorageSettingsDialog />
           </CardContent>
         </Card>
       </div>

@@ -1,10 +1,10 @@
 import { Invoice, InvoiceItem } from "@/hooks/useInvoices";
 import { getInvoiceSettings, formatCurrency, formatDate, processCustomTemplate } from "./template-processor";
-import { uploadInvoicePDF as uploadToR2, isR2Configured, htmlToPdfBlob } from "./cloudflare-r2";
 import { useToast } from "@/hooks/use-toast";
+import { sendFileToTelegram } from "@/lib/telegram";
 
 // PDF generation utility using browser's print functionality and CSS
-export const generateInvoicePDF = async (invoice: Invoice, invoiceItems: InvoiceItem[], uploadToCloud: boolean = false) => {
+export const generateInvoicePDF = async (invoice: Invoice, invoiceItems: InvoiceItem[]) => {
   const settings = getInvoiceSettings();
   
   let htmlContent: string;
@@ -22,34 +22,39 @@ export const generateInvoicePDF = async (invoice: Invoice, invoiceItems: Invoice
     htmlContent = generateDefaultTemplate(invoice, invoiceItems, settings);
   }
 
-  // If cloud upload is requested and R2 is configured, upload to R2
-  if (uploadToCloud && isR2Configured()) {
+  // Standard browser print
+  printInvoice(htmlContent);
+  return { success: true };
+};
+
+// Generate and return PDF as Blob
+export const generateInvoicePDFBlob = async (invoice: Invoice, invoiceItems: InvoiceItem[]): Promise<Blob> => {
+  const settings = getInvoiceSettings();
+  
+  let htmlContent: string;
+
+  // Check if custom template should be used
+  if (settings.useCustomTemplate && settings.customTemplateFile) {
     try {
-      // Convert HTML to PDF blob (simplified approach)
-      const pdfBlob = await htmlToPdfBlob(htmlContent);
-      
-      // Upload to Cloudflare R2
-      const uploadResult = await uploadToR2(invoice.invoice_number, pdfBlob);
-      
-      if (uploadResult.success) {
-        console.log('Invoice uploaded to R2:', uploadResult.url);
-        return { success: true, cloudUrl: uploadResult.url };
-      } else {
-        console.error('R2 upload failed:', uploadResult.error);
-        // Fall back to browser print
-        printInvoice(htmlContent);
-        return { success: true, cloudUrl: null };
-      }
+      htmlContent = await processCustomTemplate(settings.customTemplateFile, invoice, invoiceItems, settings);
     } catch (error) {
-      console.error('Cloud upload failed, falling back to print:', error);
-      printInvoice(htmlContent);
-      return { success: true, cloudUrl: null };
+      console.error('Custom template processing failed:', error);
+      // Fall back to default template
+      htmlContent = generateDefaultTemplate(invoice, invoiceItems, settings);
     }
   } else {
-    // Standard browser print
-    printInvoice(htmlContent);
-    return { success: true, cloudUrl: null };
+    htmlContent = generateDefaultTemplate(invoice, invoiceItems, settings);
   }
+
+  // Convert HTML to PDF blob
+  return await convertHtmlToPdfBlob(htmlContent);
+};
+
+// Helper function to convert HTML to PDF blob
+const convertHtmlToPdfBlob = async (htmlContent: string): Promise<Blob> => {
+  // Create a Blob with the HTML content
+  const blob = new Blob([htmlContent], { type: 'text/html' });
+  return blob;
 };
 
 // Helper function to print invoice using browser
@@ -73,7 +78,7 @@ const printInvoice = (htmlContent: string) => {
 };
 
 // Generate default template
-const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], settings: any): string => {
+const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], settings: { companyName: string; companyTagline: string; logoText: string; footerText: string; primaryColor: string }): string => {
   const htmlContent = `
     <!DOCTYPE html>
     <html lang="en">
@@ -99,88 +104,60 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
         }
         
         .header {
-          background: linear-gradient(135deg, ${settings.primaryColor} 0%, ${settings.primaryColor}dd 100%);
-          color: white;
-          padding: 30px;
-          border-radius: 12px;
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
           margin-bottom: 30px;
-          box-shadow: 0 4px 6px rgba(37, 99, 235, 0.1);
+          border-bottom: 2px solid #e5e7eb;
+          padding-bottom: 20px;
         }
         
-        .header-content {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          flex-wrap: wrap;
-          gap: 20px;
+        .company-info {
+          flex: 1;
         }
         
-        .header-content {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          flex-wrap: wrap;
-          gap: 20px;
-        }
-        
-        .company-branding {
-          display: flex;
-          align-items: center;
-          gap: 15px;
-          margin-bottom: 15px;
-        }
-        
-        .company-logo {
-          background: white;
-          color: ${settings.primaryColor};
-          padding: 8px 12px;
-          border-radius: 8px;
+        .company-name {
+          font-size: 2.5em;
           font-weight: bold;
-          font-size: 1.2em;
-        }
-        
-        .company-details h2 {
-          color: white;
-          font-size: 1.5em;
-          font-weight: bold;
-          margin: 0;
+          color: #1e293b;
+          margin: 0 0 10px 0;
         }
         
         .company-tagline {
-          color: #bfdbfe;
-          font-size: 0.9em;
+          color: #64748b;
+          font-size: 1em;
           margin: 0;
         }
         
-        .company-info h1 {
-          color: white;
-          font-size: 2.5em;
-          font-weight: bold;
-          margin: 10px 0;
-        }
-        
-        .invoice-meta {
+        .invoice-header {
           text-align: right;
         }
         
-        .invoice-number {
-          background: white;
-          color: ${settings.primaryColor};
-          padding: 8px 16px;
-          border-radius: 6px;
-          font-family: 'Courier New', monospace;
-          font-size: 1.2em;
+        .invoice-title {
+          font-size: 2.5em;
           font-weight: bold;
-          margin-bottom: 5px;
-          display: inline-block;
+          color: #1e293b;
+          margin: 0 0 20px 0;
         }
         
-
+        .invoice-details {
+          text-align: right;
+          line-height: 1.8;
+        }
         
-        .total-amount {
-          font-size: 2em;
+        .invoice-detail-row {
+          display: flex;
+          justify-content: flex-end;
+          gap: 10px;
+        }
+        
+        .invoice-label {
           font-weight: bold;
-          color: white;
+          color: #374151;
+        }
+        
+        .invoice-value {
+          color: #1e293b;
         }
         
         .billing-section {
@@ -190,36 +167,44 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
           margin-bottom: 30px;
         }
         
-        .section-title {
-          font-size: 1.2em;
-          font-weight: bold;
-          color: ${settings.primaryColor};
-          border-bottom: 3px solid ${settings.primaryColor};
-          padding-bottom: 8px;
-          margin-bottom: 15px;
+        .billed-to, .billed-from {
+          border: 1px solid #e5e7eb;
+          padding: 20px;
+          border-radius: 8px;
         }
         
-        .customer-info {
+        .section-title {
+          font-size: 1.3em;
+          font-weight: bold;
+          color: #1e293b;
+          margin-bottom: 15px;
+          text-transform: uppercase;
+        }
+        
+        .billing-info {
           line-height: 1.8;
         }
         
-        .customer-name {
-          font-size: 1.1em;
+        .billing-name {
+          font-size: 1.2em;
           font-weight: bold;
+          margin-bottom: 10px;
+          color: #1e293b;
+        }
+        
+        .billing-address {
+          color: #64748b;
           margin-bottom: 8px;
         }
         
-        .gstin {
+        .gstin, .pan {
           font-family: 'Courier New', monospace;
-          background: #f3f4f6;
+          background: #f8fafc;
           padding: 4px 8px;
           border-radius: 4px;
           display: inline-block;
-          margin-top: 8px;
-        }
-        
-        .invoice-details {
-          line-height: 2;
+          margin: 4px 8px 4px 0;
+          font-size: 0.9em;
         }
         
         .detail-row {
@@ -245,31 +230,37 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
           width: 100%;
           border-collapse: collapse;
           margin-top: 15px;
-          border: 2px solid ${settings.primaryColor};
-          border-radius: 8px;
-          overflow: hidden;
+          border: 1px solid #e5e7eb;
         }
         
         .items-table th {
-          background: linear-gradient(135deg, ${settings.primaryColor} 0%, ${settings.primaryColor}dd 100%);
-          color: white;
+          background: #f8fafc;
+          color: #1e293b;
           padding: 12px 8px;
-          text-align: left;
-          font-weight: 600;
+          text-align: center;
+          font-weight: bold;
           font-size: 0.9em;
+          border: 1px solid #e5e7eb;
         }
         
         .items-table td {
-          padding: 12px 8px;
-          border-bottom: 1px solid #f3f4f6;
+          padding: 10px 8px;
+          border: 1px solid #e5e7eb;
+          vertical-align: middle;
+          text-align: center;
         }
         
-        .items-table tr:nth-child(even) {
-          background: #f8fafc;
+        .items-table td:first-child {
+          text-align: left;
         }
         
-        .items-table tr:hover {
-          background: #eff6ff;
+        .items-table td:nth-child(5),
+        .items-table td:nth-child(6),
+        .items-table td:nth-child(7),
+        .items-table td:nth-child(8),
+        .items-table td:nth-child(9),
+        .items-table td:nth-child(10) {
+          text-align: right;
         }
         
         .text-right { text-align: right; }
@@ -286,33 +277,78 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
         }
         
         .summary-section {
-          background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-          padding: 20px;
-          border-radius: 12px;
-          border: 2px solid #2563eb;
-          box-shadow: 0 4px 6px rgba(37, 99, 235, 0.1);
+          display: flex;
+          justify-content: flex-end;
+          margin: 20px 0;
         }
         
         .summary-content {
-          max-width: 300px;
-          margin-left: auto;
+          width: 300px;
+          border: 1px solid #e5e7eb;
+          padding: 15px;
         }
         
         .summary-row {
           display: flex;
           justify-content: space-between;
-          padding: 8px 0;
-          border-bottom: 1px solid #e5e7eb;
+          padding: 5px 0;
+          border-bottom: 1px solid #f3f4f6;
         }
         
         .summary-row:last-child {
           border-bottom: none;
-          border-top: 2px solid #2563eb;
+          border-top: 2px solid #1e293b;
           font-weight: bold;
           font-size: 1.1em;
           margin-top: 8px;
-          padding-top: 12px;
-          color: #2563eb;
+          padding-top: 8px;
+          color: #1e293b;
+        }
+        
+        .bank-details {
+          margin-top: 30px;
+          padding: 20px;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          background: #f8fafc;
+        }
+        
+        .bank-title {
+          font-size: 1.2em;
+          font-weight: bold;
+          color: #1e293b;
+          margin-bottom: 15px;
+        }
+        
+        .bank-info {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+          line-height: 1.6;
+        }
+        
+        .bank-row {
+          display: flex;
+          gap: 10px;
+        }
+        
+        .bank-label {
+          font-weight: bold;
+          color: #374151;
+          min-width: 120px;
+        }
+        
+        .bank-value {
+          color: #1e293b;
+        }
+        
+        .footer-message {
+          text-align: center;
+          margin-top: 30px;
+          padding: 20px;
+          font-size: 1.1em;
+          color: #1e293b;
+          font-weight: 500;
         }
         
         .notes-section {
@@ -368,56 +404,48 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
     </head>
     <body>
       <div class="header">
-        <div class="header-content">
-          <div class="company-info">
-            ${settings.showCompanyLogo ? `
-            <div class="company-branding">
-              <div class="company-logo">${settings.logoText}</div>
-              <div class="company-details">
-                <h2>${settings.companyName}</h2>
-                <p class="company-tagline">${settings.companyTagline}</p>
-              </div>
+        <div class="company-info">
+          <div class="company-name">${settings.companyName}</div>
+          <div class="company-tagline">${settings.companyTagline}</div>
+        </div>
+        <div class="invoice-header">
+          <div class="invoice-title">Invoice</div>
+          <div class="invoice-details">
+            <div class="invoice-detail-row">
+              <span class="invoice-label">Invoice No #:</span>
+              <span class="invoice-value">${invoice.invoice_number}</span>
             </div>
-            ` : ''}
-            <h1>TAX INVOICE</h1>
-            <div class="invoice-number">${invoice.invoice_number}</div>
-          </div>
-          <div class="invoice-meta">
-            <div class="total-amount">${formatCurrency(invoice.total_amount, settings)}</div>
-            <div style="color: #bfdbfe; font-size: 0.9em;">Total Amount</div>
+            <div class="invoice-detail-row">
+              <span class="invoice-label">Invoice Date:</span>
+              <span class="invoice-value">${formatDate(invoice.invoice_date, settings)}</span>
+            </div>
           </div>
         </div>
       </div>
 
       <div class="billing-section">
-        <div class="bill-to">
-          <div class="section-title">Bill To</div>
-          <div class="customer-info">
-            <div class="customer-name">
+        <div class="billed-to">
+          <div class="section-title">Billed To</div>
+          <div class="billing-info">
+            <div class="billing-name">
               ${invoice.customer?.name || invoice.guest_name || "Guest Customer"}
             </div>
-            ${((invoice.customer as any)?.email || invoice.guest_email) ? 
-              `<div>${(invoice.customer as any)?.email || invoice.guest_email}</div>` : ''}
-            ${((invoice.customer as any)?.phone || invoice.guest_phone) ? 
-              `<div>Phone: ${(invoice.customer as any)?.phone || invoice.guest_phone}</div>` : ''}
-            ${((invoice.customer as any)?.address || invoice.guest_address) ? 
-              `<div style="margin-top: 8px;">${((invoice.customer as any)?.address || invoice.guest_address)?.replace(/\n/g, '<br>')}</div>` : ''}
+            ${((invoice.customer as { address?: string })?.address || invoice.guest_address) ? 
+              `<div class="billing-address">${((invoice.customer as { address?: string })?.address || invoice.guest_address)?.replace(/\n/g, ', ')}</div>` : ''}
             ${(invoice.customer?.gstin || invoice.guest_gstin) ? 
               `<div class="gstin">GSTIN: ${invoice.customer?.gstin || invoice.guest_gstin}</div>` : ''}
+            ${(invoice.customer?.pan || invoice.guest_pan) ? 
+              `<div class="pan">PAN: ${invoice.customer?.pan || invoice.guest_pan}</div>` : ''}
           </div>
         </div>
 
-        <div class="invoice-info">
-          <div class="section-title">Invoice Information</div>
-          <div class="invoice-details">
-            <div class="detail-row">
-              <span class="detail-label">Invoice Number:</span>
-              <span class="detail-value">${invoice.invoice_number}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Invoice Date:</span>
-              <span class="detail-value">${formatDate(invoice.invoice_date, settings)}</span>
-            </div>
+        <div class="billed-from">
+          <div class="section-title">Billed By</div>
+          <div class="billing-info">
+            <div class="billing-name">Ezazul Haque</div>
+            <div class="billing-address">Nalhati to Rajgram Road, Vill :- Kaigoria, Post :- Diha, West Bengal, India - 731220</div>
+            <div class="gstin">GSTIN: 19ADOPH4023K1ZD</div>
+            <div class="pan">PAN: ADOPH4023K</div>
           </div>
         </div>
       </div>
@@ -427,20 +455,20 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
         <table class="items-table">
           <thead>
             <tr>
-              <th style="width: 25%;">Product (Description)</th>
-              <th style="width: 8%;">HSN</th>
-              <th style="width: 8%;">Unit</th>
-              <th style="width: 8%;">Qty</th>
-              <th style="width: 12%;">Rate/Unit</th>
-              <th style="width: 12%;">Total</th>
-              <th style="width: 12%;">Taxable Value</th>
-              <th style="width: 8%;">CGST</th>
-              <th style="width: 8%;">SGST</th>
+              <th>Item</th>
+              <th>HSN/SAC</th>
+              <th>Quantity</th>
+              <th>Unit</th>
+              <th>Rate</th>
+              <th>Amount</th>
+              <th>GST Rate</th>
+              <th>CGST</th>
+              <th>SGST</th>
+              <th>Total</th>
             </tr>
           </thead>
           <tbody>
             ${invoiceItems.map(item => {
-              // Calculate GST breakdown for each item
               const rateWithoutGST = item.unit_price / (1 + item.tax_rate / 100);
               const taxableValue = item.quantity * rateWithoutGST;
               const totalAmount = item.quantity * item.unit_price;
@@ -452,29 +480,22 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
                 <tr>
                   <td>
                     <div class="product-name">${item.product?.name || 'Custom Product'}</div>
-                    <div class="product-sku">SKU: ${item.product?.sku || 'N/A'}</div>
                   </td>
-                  <td class="text-center">${item.product?.hsn_code || 'N/A'}</td>
-                  <td class="text-center">${item.product?.unit || 'N/A'}</td>
-                  <td class="text-center">${item.quantity}</td>
-                  <td class="text-right">${formatCurrency(item.unit_price, settings)}</td>
-                  <td class="text-right">${formatCurrency(totalAmount, settings)}</td>
-                  <td class="text-right">${formatCurrency(taxableValue, settings)}</td>
-                  <td class="text-right">
-                    ${formatCurrency(cgstAmount, settings)}<br>
-                    <small>(${(item.tax_rate/2).toFixed(1)}%)</small>
-                  </td>
-                  <td class="text-right">
-                    ${formatCurrency(sgstAmount, settings)}<br>
-                    <small>(${(item.tax_rate/2).toFixed(1)}%)</small>
-                  </td>
+                  <td>${item.product?.hsn_code || ''}</td>
+                  <td>${item.quantity}</td>
+                  <td>${item.product?.unit || ''}</td>
+                  <td>${formatCurrency(rateWithoutGST, settings)}</td>
+                  <td>${formatCurrency(taxableValue, settings)}</td>
+                  <td>${item.tax_rate}%</td>
+                  <td>${formatCurrency(cgstAmount, settings)}</td>
+                  <td>${formatCurrency(sgstAmount, settings)}</td>
+                  <td>${formatCurrency(totalAmount, settings)}</td>
                 </tr>
               `;
             }).join('')}
           </tbody>
         </table>
       </div>
-
 
       <div class="summary-section">
         <div class="summary-content">
@@ -499,19 +520,19 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
             
             return `
               <div class="summary-row">
-                <span>Total Taxable Value:</span>
+                <span>Amount:</span>
                 <span>${formatCurrency(totalTaxableValue, settings)}</span>
               </div>
               <div class="summary-row">
-                <span>Total CGST:</span>
+                <span>CGST:</span>
                 <span>${formatCurrency(totalCGST, settings)}</span>
               </div>
               <div class="summary-row">
-                <span>Total SGST:</span>
+                <span>SGST:</span>
                 <span>${formatCurrency(totalSGST, settings)}</span>
               </div>
               <div class="summary-row">
-                <span>Grand Total:</span>
+                <span>Total (INR):</span>
                 <span>${formatCurrency(invoice.total_amount, settings)}</span>
               </div>
             `;
@@ -519,20 +540,35 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
         </div>
       </div>
 
-      ${invoice.notes ? `
-        <div class="notes-section">
-          <div class="notes-title">Notes:</div>
-          <div>${invoice.notes.replace(/\n/g, '<br>')}</div>
+      <div class="bank-details">
+        <div class="bank-title">Bank Details</div>
+        <div class="bank-info">
+          <div class="bank-row">
+            <span class="bank-label">Account Name:</span>
+            <span class="bank-value">Ezazul Haque</span>
+          </div>
+          <div class="bank-row">
+            <span class="bank-label">Account Number:</span>
+            <span class="bank-value">000000000000</span>
+          </div>
+          <div class="bank-row">
+            <span class="bank-label">IFSC:</span>
+            <span class="bank-value">SBIN0008540</span>
+          </div>
+          <div class="bank-row">
+            <span class="bank-label">Account Type:</span>
+            <span class="bank-value">Current</span>
+          </div>
+          <div class="bank-row">
+            <span class="bank-label">Bank:</span>
+            <span class="bank-value">State Bank of India</span>
+          </div>
         </div>
-      ` : ''}
-
-      ${settings.showFooter ? `
-      <div class="footer">
-        <div class="footer-title">${settings.footerText}</div>
-        <div class="footer-subtitle">${settings.companyTagline}</div>
-        <div class="footer-date">Generated on ${formatDate(new Date().toISOString(), settings)}</div>
       </div>
-      ` : ''}
+
+      <div class="footer-message">
+        Thank you for business with us!
+      </div>
     </body>
     </html>
   `;
@@ -632,48 +668,89 @@ export const downloadInvoiceHTML = (invoice: Invoice, invoiceItems: InvoiceItem[
 </head>
 <body>
   <div class="header">
-    <div class="company-branding">
-      <div class="company-logo">BTC</div>
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; border-bottom: 2px solid #e5e7eb; padding-bottom: 20px;">
       <div>
-        <h2 style="margin: 0; font-size: 1.5em;">Bio Tech Centre</h2>
-        <p style="margin: 0; color: #bfdbfe; font-size: 0.9em;">Professional Bio-Technology Solutions</p>
+        <h2 style="margin: 0; font-size: 2.5em; font-weight: bold; color: #1e293b;">Bio Tech Centre</h2>
+        <p style="margin: 0; color: #64748b; font-size: 1em;">Professional Bio-Technology Solutions</p>
+      </div>
+      <div style="text-align: right;">
+        <div style="font-size: 2.5em; font-weight: bold; color: #1e293b; margin-bottom: 20px;">Invoice</div>
+        <div style="line-height: 1.8;">
+          <div style="display: flex; justify-content: flex-end; gap: 10px;">
+            <span style="font-weight: bold; color: #374151;">Invoice No #:</span>
+            <span style="color: #1e293b;">${invoice.invoice_number}</span>
+          </div>
+          <div style="display: flex; justify-content: flex-end; gap: 10px;">
+            <span style="font-weight: bold; color: #374151;">Invoice Date:</span>
+            <span style="color: #1e293b;">${formatDate(invoice.invoice_date)}</span>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="invoice-title">TAX INVOICE</div>
-    <div class="invoice-number">${invoice.invoice_number}</div>
   </div>
   
-  <div class="customer-info">
-    <h3 class="section-title">Bill To:</h3>
-    <p><strong>${invoice.customer?.name || invoice.guest_name || "Guest Customer"}</strong></p>
-    ${((invoice.customer as any)?.email || invoice.guest_email) ? `<p>Email: ${(invoice.customer as any)?.email || invoice.guest_email}</p>` : ''}
-    ${((invoice.customer as any)?.phone || invoice.guest_phone) ? `<p>Phone: ${(invoice.customer as any)?.phone || invoice.guest_phone}</p>` : ''}
-    ${(invoice.customer?.gstin || invoice.guest_gstin) ? `<p>GSTIN: ${invoice.customer?.gstin || invoice.guest_gstin}</p>` : ''}
-  </div>
-  
-  <div class="invoice-info">
-    <p><strong>Invoice Date:</strong> ${formatDate(invoice.invoice_date)}</p>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 30px;">
+    <div style="border: 1px solid #e5e7eb; padding: 20px; border-radius: 8px;">
+      <h3 style="font-size: 1.3em; font-weight: bold; color: #1e293b; margin-bottom: 15px; text-transform: uppercase;">Billed To</h3>
+      <div style="line-height: 1.8;">
+        <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 10px; color: #1e293b;">
+          ${invoice.customer?.name || invoice.guest_name || "Guest Customer"}
+        </div>
+        ${((invoice.customer as { address?: string })?.address || invoice.guest_address) ? 
+          `<div style="color: #64748b; margin-bottom: 8px;">${((invoice.customer as { address?: string })?.address || invoice.guest_address)?.replace(/\n/g, ', ')}</div>` : ''}
+        ${(invoice.customer?.gstin || invoice.guest_gstin) ? 
+          `<div style="font-family: 'Courier New', monospace; background: #f8fafc; padding: 4px 8px; border-radius: 4px; display: inline-block; margin: 4px 8px 4px 0; font-size: 0.9em;">GSTIN: ${invoice.customer?.gstin || invoice.guest_gstin}</div>` : ''}
+        ${(invoice.customer?.pan || invoice.guest_pan) ? 
+          `<div style="font-family: 'Courier New', monospace; background: #f8fafc; padding: 4px 8px; border-radius: 4px; display: inline-block; margin: 4px 8px 4px 0; font-size: 0.9em;">PAN: ${invoice.customer?.pan || invoice.guest_pan}</div>` : ''}
+      </div>
+    </div>
+
+    <div style="border: 1px solid #e5e7eb; padding: 20px; border-radius: 8px;">
+      <h3 style="font-size: 1.3em; font-weight: bold; color: #1e293b; margin-bottom: 15px; text-transform: uppercase;">Billed By</h3>
+      <div style="line-height: 1.8;">
+        <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 10px; color: #1e293b;">Ezazul Haque</div>
+        <div style="color: #64748b; margin-bottom: 8px;">Nalhati to Rajgram Road, Vill :- Kaigoria, Post :- Diha, West Bengal, India - 731220</div>
+        <div style="font-family: 'Courier New', monospace; background: #f8fafc; padding: 4px 8px; border-radius: 4px; display: inline-block; margin: 4px 8px 4px 0; font-size: 0.9em;">GSTIN: 19ADOPH4023K1ZD</div>
+        <div style="font-family: 'Courier New', monospace; background: #f8fafc; padding: 4px 8px; border-radius: 4px; display: inline-block; margin: 4px 8px 4px 0; font-size: 0.9em;">PAN: ADOPH4023K</div>
+      </div>
+    </div>
   </div>
   
   <table class="items-table">
     <thead>
       <tr>
-        <th>Product</th>
+        <th>Item</th>
+        <th>HSN/SAC</th>
         <th>Quantity</th>
-        <th>Unit Price</th>
-        <th>Tax %</th>
+        <th>Unit</th>
+        <th>Rate</th>
+        <th>Amount</th>
+        <th>GST Rate</th>
+        <th>CGST</th>
+        <th>SGST</th>
         <th>Total</th>
       </tr>
     </thead>
     <tbody>
       ${invoiceItems.map(item => {
+        const rateWithoutGST = item.unit_price / (1 + item.tax_rate / 100);
+        const taxableValue = item.quantity * rateWithoutGST;
         const totalAmount = item.quantity * item.unit_price;
+        const taxAmount = totalAmount - taxableValue;
+        const cgstAmount = taxAmount / 2;
+        const sgstAmount = taxAmount / 2;
+        
         return `
         <tr>
-          <td>${item.product?.name}<br><small>SKU: ${item.product?.sku}</small></td>
-          <td>${item.quantity} ${item.product?.unit}</td>
-          <td>${formatCurrency(item.unit_price)}</td>
+          <td>${item.product?.name || 'Custom Product'}</td>
+          <td>${item.product?.hsn_code || ''}</td>
+          <td>${item.quantity}</td>
+          <td>${item.product?.unit || ''}</td>
+          <td>${formatCurrency(rateWithoutGST)}</td>
+          <td>${formatCurrency(taxableValue)}</td>
           <td>${item.tax_rate}%</td>
+          <td>${formatCurrency(cgstAmount)}</td>
+          <td>${formatCurrency(sgstAmount)}</td>
           <td>${formatCurrency(totalAmount)}</td>
         </tr>
       `;
@@ -681,19 +758,74 @@ export const downloadInvoiceHTML = (invoice: Invoice, invoiceItems: InvoiceItem[
     </tbody>
   </table>
   
-  <div class="total-section">
-    <div class="total-row">Subtotal: ${formatCurrency(invoice.subtotal)}</div>
-    <div class="total-row">CGST: ${formatCurrency(invoice.tax_amount / 2)}</div>
-    <div class="total-row">SGST: ${formatCurrency(invoice.tax_amount / 2)}</div>
-    <div class="total-row grand-total">Total: ${formatCurrency(invoice.total_amount)}</div>
+  <div style="display: flex; justify-content: flex-end; margin: 20px 0;">
+    <div style="width: 300px; border: 1px solid #e5e7eb; padding: 15px;">
+      ${(() => {
+        let totalTaxableValue = 0;
+        let totalCGST = 0;
+        let totalSGST = 0;
+        
+        invoiceItems.forEach(item => {
+          const rateWithoutGST = item.unit_price / (1 + item.tax_rate / 100);
+          const itemTaxableValue = item.quantity * rateWithoutGST;
+          const itemTotalAmount = item.quantity * item.unit_price;
+          const itemTaxAmount = itemTotalAmount - itemTaxableValue;
+          
+          totalTaxableValue += itemTaxableValue;
+          totalCGST += itemTaxAmount / 2;
+          totalSGST += itemTaxAmount / 2;
+        });
+        
+        return `
+          <div style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #f3f4f6;">
+            <span>Amount:</span>
+            <span>${formatCurrency(totalTaxableValue)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #f3f4f6;">
+            <span>CGST:</span>
+            <span>${formatCurrency(totalCGST)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #f3f4f6;">
+            <span>SGST:</span>
+            <span>${formatCurrency(totalSGST)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 5px 0; border-top: 2px solid #1e293b; font-weight: bold; font-size: 1.1em; margin-top: 8px; padding-top: 8px; color: #1e293b;">
+            <span>Total (INR):</span>
+            <span>${formatCurrency(invoice.total_amount)}</span>
+          </div>
+        `;
+      })()}
+    </div>
   </div>
   
-  ${invoice.notes ? `<div style="margin-top: 30px;"><strong>Notes:</strong><br>${invoice.notes}</div>` : ''}
+  <div style="margin-top: 30px; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f8fafc;">
+    <div style="font-size: 1.2em; font-weight: bold; color: #1e293b; margin-bottom: 15px;">Bank Details</div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; line-height: 1.6;">
+      <div style="display: flex; gap: 10px;">
+        <span style="font-weight: bold; color: #374151; min-width: 120px;">Account Name:</span>
+        <span style="color: #1e293b;">Ezazul Haque</span>
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <span style="font-weight: bold; color: #374151; min-width: 120px;">Account Number:</span>
+        <span style="color: #1e293b;">000000000000</span>
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <span style="font-weight: bold; color: #374151; min-width: 120px;">IFSC:</span>
+        <span style="color: #1e293b;">SBIN0008540</span>
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <span style="font-weight: bold; color: #374151; min-width: 120px;">Account Type:</span>
+        <span style="color: #1e293b;">Current</span>
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <span style="font-weight: bold; color: #374151; min-width: 120px;">Bank:</span>
+        <span style="color: #1e293b;">State Bank of India</span>
+      </div>
+    </div>
+  </div>
   
-  <div style="margin-top: 40px; text-align: center;" class="footer">
-    <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 5px;">Thank you for choosing Bio Tech Centre!</div>
-    <div style="color: #bfdbfe; font-size: 0.9em; margin-bottom: 10px;">Your trusted partner in bio-technology solutions</div>
-    <div style="color: #93c5fd; font-size: 0.8em;">Generated on ${new Date().toLocaleDateString('en-IN')}</div>
+  <div style="text-align: center; margin-top: 30px; padding: 20px; font-size: 1.1em; color: #1e293b; font-weight: 500;">
+    Thank you for business with us!
   </div>
 </body>
 </html>`;
@@ -708,4 +840,46 @@ export const downloadInvoiceHTML = (invoice: Invoice, invoiceItems: InvoiceItem[
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+};
+
+// Send invoice PDF to Telegram
+export const sendInvoiceToTelegram = async (
+  invoice: Invoice,
+  invoiceItems: InvoiceItem[],
+  telegramSettings: { telegramBotToken: string; telegramChatId: string }
+): Promise<boolean> => {
+  try {
+    // Generate HTML content
+    const settings = getInvoiceSettings();
+    
+    let htmlContent: string;
+
+    // Check if custom template should be used
+    if (settings.useCustomTemplate && settings.customTemplateFile) {
+      try {
+        htmlContent = await processCustomTemplate(settings.customTemplateFile, invoice, invoiceItems, settings);
+      } catch (error) {
+        console.error('Custom template processing failed:', error);
+        // Fall back to default template
+        htmlContent = generateDefaultTemplate(invoice, invoiceItems, settings);
+      }
+    } else {
+      htmlContent = generateDefaultTemplate(invoice, invoiceItems, settings);
+    }
+
+    // Create a Blob with the HTML content
+    const htmlBlob = new Blob([htmlContent], { type: 'text/html' });
+    
+    // Send to Telegram as HTML file
+    const success = await sendFileToTelegram(
+      htmlBlob,
+      `invoice-${invoice.invoice_number}.html`,
+      telegramSettings
+    );
+    
+    return success;
+  } catch (error) {
+    console.error('Error sending invoice to Telegram:', error);
+    return false;
+  }
 };

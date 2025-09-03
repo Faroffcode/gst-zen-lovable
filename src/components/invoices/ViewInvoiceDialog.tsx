@@ -1,11 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { Download, Printer, X } from "lucide-react";
+import { Download, Printer, Send, X } from "lucide-react";
 import { Invoice, InvoiceItem, useInvoice } from "@/hooks/useInvoices";
 import { Skeleton } from "@/components/ui/skeleton";
-import { generateInvoicePDF } from "@/lib/invoice-pdf";
-import { isR2Configured } from "@/lib/cloudflare-r2";
+import { generateInvoicePDF, sendInvoiceToTelegram } from "@/lib/invoice-pdf";
 import { useToast } from "@/hooks/use-toast";
 
 interface ViewInvoiceDialogProps {
@@ -35,8 +34,6 @@ export const ViewInvoiceDialog = ({ open, onOpenChange, invoice, onDownload }: V
     });
   };
 
-
-
   const handlePrint = () => {
     window.print();
   };
@@ -45,25 +42,16 @@ export const ViewInvoiceDialog = ({ open, onOpenChange, invoice, onDownload }: V
     if (detailedInvoice && onDownload) {
       onDownload(detailedInvoice);
     } else if (detailedInvoice) {
-      // Direct download with cloud upload option
-      const uploadToCloud = await isR2Configured();
+      // Direct download without cloud upload
       generateInvoicePDF(
         detailedInvoice, 
-        detailedInvoice.invoice_items || [], 
-        uploadToCloud
+        detailedInvoice.invoice_items || []
       ).then(result => {
         if (result.success) {
-          if (result.cloudUrl) {
-            toast({
-              title: "Success",
-              description: "Invoice generated and uploaded to cloud storage",
-            });
-          } else {
-            toast({
-              title: "Success",
-              description: "Invoice PDF is being generated...",
-            });
-          }
+          toast({
+            title: "Success",
+            description: "Invoice PDF is being generated...",
+          });
         }
       }).catch(error => {
         toast({
@@ -71,6 +59,70 @@ export const ViewInvoiceDialog = ({ open, onOpenChange, invoice, onDownload }: V
           description: "Failed to generate invoice PDF",
           variant: "destructive",
         });
+      });
+    }
+  };
+
+  const handleSendToTelegram = async () => {
+    if (!detailedInvoice) return;
+    
+    // Show loading state
+    const loadingToast = toast({
+      title: "Sending to Telegram",
+      description: "Please wait while we send the invoice...",
+    });
+
+    // Check if Telegram integration is enabled
+    const storageSettings = localStorage.getItem('storageSettings');
+    if (!storageSettings) {
+      toast({
+        title: "Telegram Not Configured",
+        description: "Please configure Telegram in Storage Settings first.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      const settings = JSON.parse(storageSettings);
+      if (!settings.enableCloudSync || settings.cloudProvider !== 'telegram' || 
+          !settings.telegramBotToken || !settings.telegramChatId) {
+        toast({
+          title: "Telegram Not Configured",
+          description: "Please configure Telegram in Storage Settings first.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Send invoice to Telegram
+      const success = await sendInvoiceToTelegram(
+        detailedInvoice,
+        detailedInvoice.invoice_items || [],
+        {
+          telegramBotToken: settings.telegramBotToken,
+          telegramChatId: settings.telegramChatId
+        }
+      );
+      
+      if (success) {
+        toast({
+          title: "Success",
+          description: "Invoice sent to Telegram successfully!",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to send invoice to Telegram. Please check your settings.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error sending invoice to Telegram:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send invoice to Telegram: " + (error as Error).message,
+        variant: "destructive",
       });
     }
   };
@@ -86,6 +138,10 @@ export const ViewInvoiceDialog = ({ open, onOpenChange, invoice, onDownload }: V
             <Button variant="outline" size="sm" onClick={handlePrint}>
               <Printer className="h-4 w-4 mr-2" />
               Print
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleSendToTelegram}>
+              <Send className="h-4 w-4 mr-2" />
+              Send to Telegram
             </Button>
             <Button variant="outline" size="sm" onClick={handleDownload}>
               <Download className="h-4 w-4 mr-2" />

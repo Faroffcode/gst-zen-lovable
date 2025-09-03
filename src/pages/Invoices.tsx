@@ -13,7 +13,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { generateInvoicePDF, downloadInvoiceHTML } from "@/lib/invoice-pdf";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { isR2Configured } from "@/lib/cloudflare-r2";
 import {
   Dialog,
   DialogContent,
@@ -199,68 +198,52 @@ const Invoices = () => {
   const handleBulkDownload = async () => {
     if (selectedInvoices.size === 0) return;
 
-    const selectedInvoiceList = filteredInvoices.filter(invoice => 
-      selectedInvoices.has(invoice.id)
-    );
+    try {
+      // Process each selected invoice
+      for (const invoiceId of Array.from(selectedInvoices)) {
+        const { data: detailedInvoice, error } = await supabase
+          .from("invoices")
+          .select(`
+            *,
+            customer:customers(*),
+            invoice_items(
+              *,
+              product:products(name, sku, unit, hsn_code)
+            )
+          `)
+          .eq("id", invoiceId)
+          .single();
+        
+        if (error || !detailedInvoice) {
+          throw new Error(`Failed to fetch invoice ${invoiceId}`);
+        }
 
-    toast({
-      title: "Downloading Invoices",
-      description: `Preparing ${selectedInvoices.size} invoices for download...`,
-    });
-
-    let successCount = 0;
-    let errorCount = 0;
-
-    for (const invoice of selectedInvoiceList) {
-      try {
-        await handleDownload(invoice);
-        successCount++;
-        // Add a small delay to prevent overwhelming the browser
-        await new Promise(resolve => setTimeout(resolve, 500));
-      } catch (error) {
-        errorCount++;
-        console.error(`Failed to download invoice ${invoice.invoice_number}:`, error);
+        // Generate PDF for each invoice
+        const result = await generateInvoicePDF(
+          detailedInvoice, 
+          detailedInvoice.invoice_items || []
+        );
+        
+        if (!result.success) {
+          throw new Error(`Failed to generate PDF for invoice ${detailedInvoice.invoice_number}`);
+        }
       }
+
+      toast({
+        title: "Success",
+        description: `${selectedInvoices.size} invoice${selectedInvoices.size > 1 ? 's' : ''} downloaded successfully`,
+      });
+
+      // Clear selection after download
+      setSelectedInvoices(new Set());
+    } catch (error: Error) {
+      console.error('Bulk download failed:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to download selected invoices",
+        variant: "destructive",
+      });
     }
-
-    toast({
-      title: "Bulk Download Complete",
-      description: `Successfully downloaded ${successCount} invoices. ${errorCount > 0 ? `${errorCount} failed.` : ''}`,
-      variant: errorCount > 0 ? "destructive" : "default",
-    });
-
-    setSelectedInvoices(new Set());
-  };
-
-  // Bulk delete handler
-  const handleBulkDelete = async () => {
-    if (selectedInvoices.size === 0) return;
-
-    const selectedInvoiceList = filteredInvoices.filter(invoice => 
-      selectedInvoices.has(invoice.id)
-    );
-
-    let successCount = 0;
-    let errorCount = 0;
-
-    for (const invoice of selectedInvoiceList) {
-      try {
-        await deleteInvoiceMutation.mutateAsync(invoice.id);
-        successCount++;
-      } catch (error) {
-        errorCount++;
-        console.error(`Failed to delete invoice ${invoice.invoice_number}:`, error);
-      }
-    }
-
-    toast({
-      title: "Bulk Delete Complete",
-      description: `Successfully deleted ${successCount} invoices. ${errorCount > 0 ? `${errorCount} failed.` : ''}`,
-      variant: errorCount > 0 ? "destructive" : "default",
-    });
-
-    setSelectedInvoices(new Set());
-    setShowBulkDeleteDialog(false);
   };
 
   // Clear all filters
@@ -271,27 +254,54 @@ const Invoices = () => {
     setHasGSTIN("all");
   };
 
-  const handleEdit = (invoice: Invoice) => {
-    setEditInvoice(invoice);
+  // Handle delete invoice
+  const handleDelete = (id: string) => {
+    // We need to find the invoice to get its number for the delete dialog
+    const invoice = invoices.find(inv => inv.id === id);
+    if (invoice) {
+      setDeleteInvoice({ id, number: invoice.invoice_number });
+    }
   };
 
-  const handleDelete = (invoiceId: string) => {
-    const invoice = invoices.find(inv => inv.id === invoiceId);
-    if (invoice) {
-      setDeleteInvoice({ 
-        id: invoiceId, 
-        number: invoice.invoice_number 
+  // Handle bulk delete
+  const handleBulkDelete = async () => {
+    try {
+      // Delete each selected invoice
+      for (const invoiceId of Array.from(selectedInvoices)) {
+        await deleteInvoiceMutation.mutateAsync(invoiceId);
+      }
+
+      // Clear selection and close dialog
+      setSelectedInvoices(new Set());
+      setShowBulkDeleteDialog(false);
+
+      toast({
+        title: "Success",
+        description: `${selectedInvoices.size} invoice${selectedInvoices.size > 1 ? 's' : ''} deleted successfully`,
+      });
+    } catch (error: Error) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete selected invoices",
+        variant: "destructive",
       });
     }
   };
 
+  // Handle edit invoice
+  const handleEdit = (invoice: Invoice) => {
+    setEditInvoice(invoice);
+  };
+
+  // Handle view invoice
   const handleView = (invoice: Invoice) => {
     setViewInvoice(invoice);
   };
 
+  // Handle download invoice
   const handleDownload = async (invoice: Invoice) => {
     try {
-      // Fetch detailed invoice data including items
+      // Fetch detailed invoice data with items and product information
       const { data: detailedInvoice, error } = await supabase
         .from("invoices")
         .select(`
@@ -309,27 +319,17 @@ const Invoices = () => {
         throw new Error('Failed to fetch invoice details');
       }
 
-      // Try to generate PDF, fallback to HTML if failed
-      const uploadToCloud = await isR2Configured();
-      
+      // Generate PDF without cloud upload
       const result = await generateInvoicePDF(
         detailedInvoice, 
-        detailedInvoice.invoice_items || [], 
-        uploadToCloud
+        detailedInvoice.invoice_items || []
       );
       
       if (result.success) {
-        if (result.cloudUrl) {
-          toast({
-            title: "Success",
-            description: "Invoice generated and uploaded to cloud storage",
-          });
-        } else {
-          toast({
-            title: "Success", 
-            description: "Invoice PDF is being generated...",
-          });
-        }
+        toast({
+          title: "Success", 
+          description: "Invoice PDF is being generated...",
+        });
       } else {
         // Fallback to HTML download
         downloadInvoiceHTML(detailedInvoice, detailedInvoice.invoice_items || []);
@@ -338,7 +338,7 @@ const Invoices = () => {
           description: "Invoice downloaded as HTML file",
         });
       }
-    } catch (error: any) {
+    } catch (error: Error) {
       console.error('Download failed:', error);
       toast({
         title: "Error",
@@ -499,7 +499,7 @@ const Invoices = () => {
                 disabled={!hasActiveFilters}
               >
                 <X className="h-4 w-4 mr-2" />
-                Clear
+                Clear Filters
               </Button>
               <Button 
                 onClick={() => setShowFilters(false)}
@@ -510,144 +510,64 @@ const Invoices = () => {
             </div>
           </DialogContent>
         </Dialog>
-        <Button variant="outline" className="w-full sm:w-auto">
-          <Download className="h-4 w-4 mr-2" />
-          Export
-        </Button>
+
+        {selectedInvoices.size > 0 ? (
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button 
+              variant="outline" 
+              onClick={handleBulkDownload}
+              className="flex-1 sm:flex-none"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download ({selectedInvoices.size})
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => setShowBulkDeleteDialog(true)}
+              className="flex-1 sm:flex-none"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete ({selectedInvoices.size})
+            </Button>
+          </div>
+        ) : (
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button 
+              variant="outline" 
+              onClick={clearFilters}
+              disabled={!hasActiveFilters}
+              className="w-full sm:w-auto"
+            >
+              <X className="h-4 w-4 mr-2" />
+              Clear Filters
+            </Button>
+          </div>
+        )}
       </div>
-
-      {/* Bulk Actions Bar */}
-      {selectedInvoices.size > 0 && (
-        <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <span className="text-sm font-medium text-blue-700">
-                  {selectedInvoices.size} invoice{selectedInvoices.size > 1 ? 's' : ''} selected
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSelectedInvoices(new Set())}
-                  className="text-blue-700 hover:text-blue-800 hover:bg-blue-100"
-                >
-                  Clear Selection
-                </Button>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleBulkDownload}
-                  className="text-blue-700 border-blue-300 hover:bg-blue-100"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Download All ({selectedInvoices.size})
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowBulkDeleteDialog(true)}
-                  className="text-red-700 border-red-300 hover:bg-red-100"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Selected ({selectedInvoices.size})
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Active Filters Display */}
-      {hasActiveFilters && (
-        <Card className="bg-purple-50 border-purple-200">
-          <CardContent className="pt-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-medium text-purple-700">Active Filters:</span>
-              {dateRange.from && (
-                <Badge variant="secondary" className="bg-purple-100 text-purple-700">
-                  From: {new Date(dateRange.from).toLocaleDateString()}
-                  <X 
-                    className="ml-1 h-3 w-3 cursor-pointer" 
-                    onClick={() => setDateRange(prev => ({ ...prev, from: "" }))}
-                  />
-                </Badge>
-              )}
-              {dateRange.to && (
-                <Badge variant="secondary" className="bg-purple-100 text-purple-700">
-                  To: {new Date(dateRange.to).toLocaleDateString()}
-                  <X 
-                    className="ml-1 h-3 w-3 cursor-pointer" 
-                    onClick={() => setDateRange(prev => ({ ...prev, to: "" }))}
-                  />
-                </Badge>
-              )}
-              {amountRange.min && (
-                <Badge variant="secondary" className="bg-purple-100 text-purple-700">
-                  Min: ₹{amountRange.min}
-                  <X 
-                    className="ml-1 h-3 w-3 cursor-pointer" 
-                    onClick={() => setAmountRange(prev => ({ ...prev, min: "" }))}
-                  />
-                </Badge>
-              )}
-              {amountRange.max && (
-                <Badge variant="secondary" className="bg-purple-100 text-purple-700">
-                  Max: ₹{amountRange.max}
-                  <X 
-                    className="ml-1 h-3 w-3 cursor-pointer" 
-                    onClick={() => setAmountRange(prev => ({ ...prev, max: "" }))}
-                  />
-                </Badge>
-              )}
-              {customerType !== "all" && (
-                <Badge variant="secondary" className="bg-purple-100 text-purple-700">
-                  {customerType === "registered" ? "Registered" : "Guest"} Customers
-                  <X 
-                    className="ml-1 h-3 w-3 cursor-pointer" 
-                    onClick={() => setCustomerType("all")}
-                  />
-                </Badge>
-              )}
-              {hasGSTIN !== "all" && (
-                <Badge variant="secondary" className="bg-purple-100 text-purple-700">
-                  {hasGSTIN === "yes" ? "Has" : "No"} GSTIN
-                  <X 
-                    className="ml-1 h-3 w-3 cursor-pointer" 
-                    onClick={() => setHasGSTIN("all")}
-                  />
-                </Badge>
-              )}
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={clearFilters}
-                className="text-purple-700 hover:text-purple-800 hover:bg-purple-100"
-              >
-                Clear All
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Invoice History
-            </div>
-            <div className="text-sm font-normal text-muted-foreground">
-              {filteredInvoices.length} of {invoices.length} invoices
-            </div>
-          </CardTitle>
+          <div className="flex justify-between items-center">
+            <CardTitle className="text-xl font-bold">
+              Invoices
+              {filteredInvoices.length > 0 && (
+                <span className="text-sm font-normal text-muted-foreground ml-2">
+                  ({filteredInvoices.length} total)
+                </span>
+              )}
+            </CardTitle>
+            {selectedInvoices.size > 0 && (
+              <div className="flex items-center gap-2 text-sm">
+                <CheckSquare className="h-4 w-4" />
+                <span>{selectedInvoices.size} selected</span>
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {filteredInvoices.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <div className="text-center py-12">
+              <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-lg font-medium mb-2">
                 {invoices.length === 0 ? "No invoices found" : "No matching invoices"}
               </p>

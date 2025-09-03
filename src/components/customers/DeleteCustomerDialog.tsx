@@ -86,7 +86,7 @@ export const DeleteCustomerDialog = ({ customer, open, onOpenChange }: DeleteCus
                     Cannot delete: Customer has {invoiceReferences.length} invoice(s)
                   </div>
                   <div className="text-sm space-y-1">
-                    {invoiceReferences.slice(0, 3).map((invoice: any) => (
+                    {invoiceReferences.slice(0, 3).map((invoice: { id: string; invoice_number: string; total_amount: number }) => (
                       <div key={invoice.id} className="flex justify-between">
                         <span>• {invoice.invoice_number}</span>
                         <span>{formatCurrency(invoice.total_amount)}</span>

@@ -70,7 +70,7 @@ export const CreateInvoiceDialog = () => {
     setItems(updatedItems);
   };
 
-  const updateItem = (index: number, field: string, value: any, autoFillData?: { unit_price: number; tax_rate: number }) => {
+  const updateItem = (index: number, field: string, value: string | number, autoFillData?: { unit_price: number; tax_rate: number }) => {
     const updatedItems = [...items];
     updatedItems[index] = { ...updatedItems[index], [field]: value };
     

@@ -55,7 +55,7 @@ export const EditInvoiceDialog = ({ open, onOpenChange, invoice }: EditInvoiceDi
     tax_rate: 18,
   }]);
 
-  const [originalItems, setOriginalItems] = useState<any[]>([]);
+  const [originalItems, setOriginalItems] = useState<Array<{ id: string; product_id: string | null; quantity: number; unit_price: number; tax_rate: number }>>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const updateInvoice = useUpdateInvoice();
@@ -103,7 +103,7 @@ export const EditInvoiceDialog = ({ open, onOpenChange, invoice }: EditInvoiceDi
 
           // Set items data
           if (detailedInvoice.invoice_items && detailedInvoice.invoice_items.length > 0) {
-            setItems(detailedInvoice.invoice_items.map((item: any) => ({
+            setItems(detailedInvoice.invoice_items.map((item: { id: string; product_id: string | null; quantity: number; unit_price: number; tax_rate: number }) => ({
               id: item.id,
               product_id: item.product_id,
               custom_product_name: "", // Will be filled from product name if needed
@@ -162,7 +162,7 @@ export const EditInvoiceDialog = ({ open, onOpenChange, invoice }: EditInvoiceDi
     setItems(updatedItems);
   };
 
-  const updateItem = (index: number, field: string, value: any) => {
+  const updateItem = (index: number, field: string, value: string | number) => {
     const updatedItems = [...items];
     updatedItems[index] = { ...updatedItems[index], [field]: value };
     
@@ -335,7 +335,7 @@ export const EditInvoiceDialog = ({ open, onOpenChange, invoice }: EditInvoiceDi
       });
       
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error: Error) {
       console.error('Invoice update failed:', error);
       toast({
         title: "Error",

@@ -87,7 +87,7 @@ export const useAddStockTransaction = () => {
         description: "Stock transaction recorded successfully",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Failed to record stock transaction",
@@ -123,7 +123,7 @@ export const useRecordPurchase = () => {
         description: "Purchase recorded successfully",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Failed to record purchase",
@@ -163,7 +163,7 @@ export const useRecordSale = () => {
       queryClient.invalidateQueries({ queryKey: ["stock-transactions"] });
       queryClient.invalidateQueries({ queryKey: ["products"] });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Failed to record sale transaction",
@@ -197,7 +197,7 @@ export const useRecordMultipleSales = () => {
       queryClient.invalidateQueries({ queryKey: ["stock-transactions"] });
       queryClient.invalidateQueries({ queryKey: ["products"] });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Failed to record sale transactions",

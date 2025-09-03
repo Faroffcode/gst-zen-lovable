@@ -20,7 +20,7 @@ const StatCard = ({
   title: string;
   value: number | string;
   change?: number;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   type?: "currency" | "number";
 }) => {
   const isPositive = change ? change > 0 : true;

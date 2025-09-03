@@ -206,6 +206,11 @@ SUPABASE_ACCESS_TOKEN=your_access_token
 - Set up database triggers for automatic calculations
 - Enable real-time subscriptions if needed
 
+### PDF Invoice Generation
+- Generate professional invoices with automatic GST calculations
+- Download invoices as PDF files
+- Print invoices directly from the browser
+
 ## 📁 Project Structure
 
 ```
@@ -214,7 +219,7 @@ src/
 │   ├── ui/             # shadcn-ui components
 │   ├── customers/      # Customer management components
 │   ├── inventory/      # Inventory management components
-│   ├── invoices/       # Invoice management components
+│   ├── invoices/      # Invoice management components
 │   ├── purchase/       # Purchase management components
 │   └── Dashboard.tsx   # Main dashboard component
 ├── hooks/              # Custom React hooks
