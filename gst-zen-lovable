@@ -1,0 +1,419 @@
+commit fa6a98903b2b5279a706bb9f451409ef23abc9f9
+Author: gpt-engineer-app[bot] <159125892+gpt-engineer-app[bot]@users.noreply.github.com>
+Date:   Wed Sep 3 14:57:38 2025 +0000
+
+    Add R2 secrets to Supabase
+
+diff --git a/src/components/InvoiceSettingsDialog.tsx b/src/components/InvoiceSettingsDialog.tsx
+index 047e591..9817de3 100644
+--- a/src/components/InvoiceSettingsDialog.tsx
++++ b/src/components/InvoiceSettingsDialog.tsx
+@@ -52,12 +52,16 @@ const InvoiceSettingsDialog = () => {
+     // Load existing settings from localStorage when component initializes
+     return getInvoiceSettings();
+   });
++  const [r2Configured, setR2Configured] = useState<boolean>(false);
+ 
+-  // Load settings when dialog opens
++  // Load settings and check R2 configuration when dialog opens
+   useEffect(() => {
+     if (open) {
+       const currentSettings = getInvoiceSettings();
+       setSettings(currentSettings);
++      
++      // Check R2 configuration
++      isR2Configured().then(setR2Configured);
+     }
+   }, [open]);
+ 
+@@ -333,13 +337,13 @@ Note: Your custom template should be a PDF file with these placeholders.
+               {/* Cloud Storage Status */}
+               <div className="col-span-1 md:col-span-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                 <div className="flex items-center gap-2">
+-                  <div className={`w-2 h-2 rounded-full ${isR2Configured() ? 'bg-green-500' : 'bg-gray-400'}`}></div>
++                  <div className={`w-2 h-2 rounded-full ${r2Configured ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                   <span className="text-sm font-medium">
+-                    Cloud Storage (Cloudflare R2): {isR2Configured() ? 'Configured' : 'Not Configured'}
++                    Cloud Storage (Cloudflare R2): {r2Configured ? 'Configured' : 'Not Configured'}
+                   </span>
+                 </div>
+                 <p className="text-xs text-muted-foreground mt-1">
+-                  {isR2Configured() 
++                  {r2Configured 
+                     ? 'Invoices will be automatically uploaded to cloud storage for backup and sharing'
+                     : 'Configure Cloudflare R2 credentials to enable cloud storage for invoices'
+                   }
+diff --git a/src/components/invoices/ViewInvoiceDialog.tsx b/src/components/invoices/ViewInvoiceDialog.tsx
+index 1c4ae91..e671b67 100644
+--- a/src/components/invoices/ViewInvoiceDialog.tsx
++++ b/src/components/invoices/ViewInvoiceDialog.tsx
+@@ -41,12 +41,12 @@ export const ViewInvoiceDialog = ({ open, onOpenChange, invoice, onDownload }: V
+     window.print();
+   };
+ 
+-  const handleDownload = () => {
++  const handleDownload = async () => {
+     if (detailedInvoice && onDownload) {
+       onDownload(detailedInvoice);
+     } else if (detailedInvoice) {
+       // Direct download with cloud upload option
+-      const uploadToCloud = isR2Configured();
++      const uploadToCloud = await isR2Configured();
+       generateInvoicePDF(
+         detailedInvoice, 
+         detailedInvoice.invoice_items || [], 
+diff --git a/src/lib/cloudflare-r2.ts b/src/lib/cloudflare-r2.ts
+index a82b234..3488484 100644
+--- a/src/lib/cloudflare-r2.ts
++++ b/src/lib/cloudflare-r2.ts
+@@ -1,17 +1,4 @@
+-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+-
+-// Cloudflare R2 configuration
+-const r2Client = new S3Client({
+-  region: 'auto',
+-  endpoint: `https://${import.meta.env.VITE_CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+-  credentials: {
+-    accessKeyId: import.meta.env.VITE_CLOUDFLARE_ACCESS_KEY_ID,
+-    secretAccessKey: import.meta.env.VITE_CLOUDFLARE_SECRET_ACCESS_KEY,
+-  },
+-});
+-
+-const BUCKET_NAME = import.meta.env.VITE_CLOUDFLARE_BUCKET_NAME;
++import { supabase } from "@/integrations/supabase/client";
+ 
+ export interface UploadResult {
+   success: boolean;
+@@ -26,34 +13,29 @@ export const uploadInvoicePDF = async (
+   pdfBlob: Blob
+ ): Promise<UploadResult> => {
+   try {
+-    if (!BUCKET_NAME || !import.meta.env.VITE_CLOUDFLARE_ACCOUNT_ID) {
+-      throw new Error('Cloudflare R2 configuration is missing');
+-    }
+-
+-    const key = `invoices/${invoiceNumber}.pdf`;
++    // Convert blob to base64
+     const buffer = await pdfBlob.arrayBuffer();
+-
+-    const command = new PutObjectCommand({
+-      Bucket: BUCKET_NAME,
+-      Key: key,
+-      Body: new Uint8Array(buffer),
+-      ContentType: 'application/pdf',
+-      Metadata: {
+-        'invoice-number': invoiceNumber,
+-        'uploaded-at': new Date().toISOString(),
++    const uint8Array = new Uint8Array(buffer);
++    const base64String = btoa(String.fromCharCode.apply(null, Array.from(uint8Array)));
++
++    const { data, error } = await supabase.functions.invoke('invoice-storage', {
++      body: {
++        operation: 'upload',
++        invoiceNumber,
++        pdfData: base64String,
++        contentType: 'application/pdf',
+       },
+     });
+ 
+-    await r2Client.send(command);
+-
+-    // Generate public URL
+-    const publicUrl = `https://${BUCKET_NAME}.${import.meta.env.VITE_CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com/${key}`;
++    if (error) {
++      console.error('Failed to upload invoice to R2:', error);
++      return {
++        success: false,
++        error: error.message || 'Upload failed',
++      };
++    }
+ 
+-    return {
+-      success: true,
+-      url: publicUrl,
+-      key: key,
+-    };
++    return data;
+   } catch (error: any) {
+     console.error('Failed to upload invoice to R2:', error);
+     return {
+@@ -69,19 +51,20 @@ export const getInvoiceDownloadUrl = async (
+   expiresIn: number = 3600 // 1 hour default
+ ): Promise<string | null> => {
+   try {
+-    if (!BUCKET_NAME || !import.meta.env.VITE_CLOUDFLARE_ACCOUNT_ID) {
+-      throw new Error('Cloudflare R2 configuration is missing');
+-    }
+-
+-    const key = `invoices/${invoiceNumber}.pdf`;
+-    
+-    const command = new GetObjectCommand({
+-      Bucket: BUCKET_NAME,
+-      Key: key,
++    const { data, error } = await supabase.functions.invoke('invoice-storage', {
++      body: {
++        operation: 'getDownloadUrl',
++        invoiceNumber,
++        expiresIn,
++      },
+     });
+ 
+-    const signedUrl = await getSignedUrl(r2Client, command, { expiresIn });
+-    return signedUrl;
++    if (error) {
++      console.error('Failed to generate download URL:', error);
++      return null;
++    }
++
++    return data.success ? data.url : null;
+   } catch (error: any) {
+     console.error('Failed to generate download URL:', error);
+     return null;
+@@ -91,20 +74,19 @@ export const getInvoiceDownloadUrl = async (
+ // Delete invoice from R2 storage
+ export const deleteInvoicePDF = async (invoiceNumber: string): Promise<boolean> => {
+   try {
+-    if (!BUCKET_NAME || !import.meta.env.VITE_CLOUDFLARE_ACCOUNT_ID) {
+-      throw new Error('Cloudflare R2 configuration is missing');
+-    }
+-
+-    const key = `invoices/${invoiceNumber}.pdf`;
+-    
+-    const { DeleteObjectCommand } = await import('@aws-sdk/client-s3');
+-    const command = new DeleteObjectCommand({
+-      Bucket: BUCKET_NAME,
+-      Key: key,
++    const { data, error } = await supabase.functions.invoke('invoice-storage', {
++      body: {
++        operation: 'delete',
++        invoiceNumber,
++      },
+     });
+ 
+-    await r2Client.send(command);
+-    return true;
++    if (error) {
++      console.error('Failed to delete invoice from R2:', error);
++      return false;
++    }
++
++    return data.success || false;
+   } catch (error: any) {
+     console.error('Failed to delete invoice from R2:', error);
+     return false;
+@@ -112,13 +94,24 @@ export const deleteInvoicePDF = async (invoiceNumber: string): Promise<boolean>
+ };
+ 
+ // Check if R2 is configured
+-export const isR2Configured = (): boolean => {
+-  return !!(
+-    import.meta.env.VITE_CLOUDFLARE_ACCOUNT_ID &&
+-    import.meta.env.VITE_CLOUDFLARE_ACCESS_KEY_ID &&
+-    import.meta.env.VITE_CLOUDFLARE_SECRET_ACCESS_KEY &&
+-    import.meta.env.VITE_CLOUDFLARE_BUCKET_NAME
+-  );
++export const isR2Configured = async (): Promise<boolean> => {
++  try {
++    const { data, error } = await supabase.functions.invoke('invoice-storage', {
++      body: {
++        operation: 'checkConfig',
++      },
++    });
++
++    if (error) {
++      console.error('Failed to check R2 configuration:', error);
++      return false;
++    }
++
++    return data.configured || false;
++  } catch (error: any) {
++    console.error('Failed to check R2 configuration:', error);
++    return false;
++  }
+ };
+ 
+ // Convert HTML content to PDF blob (using browser's print functionality)
+diff --git a/src/pages/Invoices.tsx b/src/pages/Invoices.tsx
+index f95ce79..91ddddd 100644
+--- a/src/pages/Invoices.tsx
++++ b/src/pages/Invoices.tsx
+@@ -310,7 +310,7 @@ const Invoices = () => {
+       }
+ 
+       // Try to generate PDF, fallback to HTML if failed
+-      const uploadToCloud = isR2Configured();
++      const uploadToCloud = await isR2Configured();
+       
+       const result = await generateInvoicePDF(
+         detailedInvoice, 
+diff --git a/supabase/config.toml b/supabase/config.toml
+index c682654..60332ba 100644
+--- a/supabase/config.toml
++++ b/supabase/config.toml
+@@ -1 +1,4 @@
+-project_id = "bcgbtaxhbthpqrhazdxc"
+\ No newline at end of file
++project_id = "bcgbtaxhbthpqrhazdxc"
++
++[functions.invoice-storage]
++verify_jwt = false
+\ No newline at end of file
+diff --git a/supabase/functions/invoice-storage/index.ts b/supabase/functions/invoice-storage/index.ts
+new file mode 100644
+index 0000000..cbaebe6
+--- /dev/null
++++ b/supabase/functions/invoice-storage/index.ts
+@@ -0,0 +1,151 @@
++import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
++import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "https://esm.sh/@aws-sdk/client-s3@3.879.0";
++import { getSignedUrl } from "https://esm.sh/@aws-sdk/s3-request-presigner@3.879.0";
++
++const corsHeaders = {
++  'Access-Control-Allow-Origin': '*',
++  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
++};
++
++serve(async (req) => {
++  // Handle CORS preflight requests
++  if (req.method === 'OPTIONS') {
++    return new Response(null, { headers: corsHeaders });
++  }
++
++  try {
++    const accountId = Deno.env.get('CLOUDFLARE_R2_ACCOUNT_ID');
++    const accessKeyId = Deno.env.get('CLOUDFLARE_R2_ACCESS_KEY_ID');
++    const secretAccessKey = Deno.env.get('CLOUDFLARE_R2_SECRET_ACCESS_KEY');
++    const bucketName = Deno.env.get('CLOUDFLARE_R2_BUCKET_NAME');
++
++    if (!accountId || !accessKeyId || !secretAccessKey || !bucketName) {
++      console.error('Missing Cloudflare R2 configuration');
++      return new Response(
++        JSON.stringify({ error: 'Cloudflare R2 configuration is missing' }),
++        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
++      );
++    }
++
++    // Initialize Cloudflare R2 client
++    const r2Client = new S3Client({
++      region: 'auto',
++      endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
++      credentials: {
++        accessKeyId,
++        secretAccessKey,
++      },
++    });
++
++    const { operation, invoiceNumber, expiresIn = 3600 } = await req.json();
++
++    switch (operation) {
++      case 'upload': {
++        const { pdfData, contentType = 'application/pdf' } = await req.json();
++        
++        if (!pdfData) {
++          return new Response(
++            JSON.stringify({ error: 'PDF data is required for upload' }),
++            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
++          );
++        }
++
++        const key = `invoices/${invoiceNumber}.pdf`;
++        
++        // Convert base64 to buffer
++        const buffer = Uint8Array.from(atob(pdfData), c => c.charCodeAt(0));
++
++        const command = new PutObjectCommand({
++          Bucket: bucketName,
++          Key: key,
++          Body: buffer,
++          ContentType: contentType,
++          Metadata: {
++            'invoice-number': invoiceNumber,
++            'uploaded-at': new Date().toISOString(),
++          },
++        });
++
++        await r2Client.send(command);
++
++        // Generate public URL
++        const publicUrl = `https://${bucketName}.${accountId}.r2.cloudflarestorage.com/${key}`;
++
++        console.log(`Successfully uploaded invoice ${invoiceNumber} to R2`);
++
++        return new Response(JSON.stringify({
++          success: true,
++          url: publicUrl,
++          key: key,
++        }), {
++          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
++        });
++      }
++
++      case 'getDownloadUrl': {
++        const key = `invoices/${invoiceNumber}.pdf`;
++        
++        const command = new GetObjectCommand({
++          Bucket: bucketName,
++          Key: key,
++        });
++
++        const signedUrl = await getSignedUrl(r2Client, command, { expiresIn });
++        
++        console.log(`Generated download URL for invoice ${invoiceNumber}`);
++
++        return new Response(JSON.stringify({
++          success: true,
++          url: signedUrl,
++        }), {
++          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
++        });
++      }
++
++      case 'delete': {
++        const key = `invoices/${invoiceNumber}.pdf`;
++        
++        const command = new DeleteObjectCommand({
++          Bucket: bucketName,
++          Key: key,
++        });
++
++        await r2Client.send(command);
++        
++        console.log(`Successfully deleted invoice ${invoiceNumber} from R2`);
++
++        return new Response(JSON.stringify({
++          success: true,
++        }), {
++          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
++        });
++      }
++
++      case 'checkConfig': {
++        // If we reach here, all config is available
++        return new Response(JSON.stringify({
++          configured: true,
++          accountId: accountId.slice(0, 8) + '...',
++          bucketName,
++        }), {
++          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
++        });
++      }
++
++      default:
++        return new Response(
++          JSON.stringify({ error: 'Invalid operation. Supported: upload, getDownloadUrl, delete, checkConfig' }),
++          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
++        );
++    }
++  } catch (error: any) {
++    console.error('Error in invoice-storage function:', error);
++    return new Response(JSON.stringify({
++      success: false,
++      error: error.message || 'An error occurred',
++    }), {
++      status: 500,
++      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
++    });
++  }
++});
+\ No newline at end of file

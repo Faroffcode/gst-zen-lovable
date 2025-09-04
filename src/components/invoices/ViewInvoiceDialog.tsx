@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Separator } from "@/components/ui/separator";
 import { Download, Send, X } from "lucide-react";
 import { Invoice, InvoiceItem, useInvoice } from "@/hooks/useInvoices";
+import { Customer } from "@/hooks/useCustomers";
 import { Skeleton } from "@/components/ui/skeleton";
 import { generateInvoicePDF, sendInvoiceToTelegram } from "@/lib/invoice-pdf";
 import { useToast } from "@/hooks/use-toast";
@@ -153,76 +154,56 @@ export const ViewInvoiceDialog = ({ open, onOpenChange, invoice, onDownload }: V
         ) : detailedInvoice ? (
           <div>
             {/* Invoice Header */}
-            <div className="p-6 rounded-xl mb-6 border border-gray-200 shadow-sm" style={{backgroundColor: '#eff3ff'}}>
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="p-6 mb-6">
+              <div className="flex justify-between items-start">
                 <div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="bg-blue-600 text-white px-3 py-1 rounded-lg text-sm font-semibold">BTC</div>
-                    <div>
-                      <h2 className="text-xl font-bold" style={{background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text'}}>Bio Tech Centre</h2>
-                      <p className="text-sm text-gray-600">Professional Bio-Technology Solutions</p>
-                    </div>
-                  </div>
-                  <h1 className="text-3xl font-bold mb-2" style={{background: 'linear-gradient(135deg, #059669, #0d9488)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text'}}>TAX INVOICE</h1>
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg font-mono font-semibold bg-white px-3 py-1 rounded border">{detailedInvoice.invoice_number}</span>
-                  </div>
+                  <h1 className="text-2xl font-bold text-gray-800 mb-1">BIO TECH CENTRE</h1>
+                  <p className="text-sm text-gray-600 mb-6">Professional Bio-Technology Solutions</p>
                 </div>
                 <div className="text-right">
-                  <div className="text-3xl font-bold text-gray-800">{formatCurrency(detailedInvoice.total_amount)}</div>
-                  <div className="text-sm text-gray-600 font-medium">Total Amount</div>
+                  <h2 className="text-2xl font-bold text-gray-800 mb-2">Invoice</h2>
+                  <div className="text-sm text-gray-600 space-y-1">
+                    <div><span className="font-medium">Invoice No #:</span> {detailedInvoice.invoice_number}</div>
+                    <div><span className="font-medium">Invoice Date:</span> {formatDate(detailedInvoice.invoice_date)}</div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Invoice Details */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              {/* Billing Information */}
-              <div className="p-4 rounded-lg border border-gray-200 shadow-sm" style={{backgroundColor: '#eff3ff'}}>
-                <h3 className="text-lg font-semibold pb-2" style={{background: 'linear-gradient(135deg, #374151, #1f2937)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text'}}>BILLED TO</h3>
-                <div className="space-y-2">
-                  <div className="font-medium text-lg">
+            {/* Billing Information */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+              <div>
+                <h3 className="text-lg font-bold text-gray-800 mb-3">BILLED TO</h3>
+                <div className="space-y-1">
+                  <div className="font-bold text-base">
                     {detailedInvoice.customer?.name || detailedInvoice.guest_name || "Guest Customer"}
                   </div>
-                  {(detailedInvoice.customer?.email || detailedInvoice.guest_email) && (
-                    <div className="text-sm text-muted-foreground">
-                      {detailedInvoice.customer?.email || detailedInvoice.guest_email}
+                  {((detailedInvoice.customer as Customer)?.phone || detailedInvoice.guest_phone) && (
+                    <div className="text-sm text-gray-600">
+                      Phone: {(detailedInvoice.customer as Customer)?.phone || detailedInvoice.guest_phone}
                     </div>
                   )}
-                  {(detailedInvoice.customer?.phone || detailedInvoice.guest_phone) && (
-                    <div className="text-sm text-muted-foreground">
-                      Phone: {detailedInvoice.customer?.phone || detailedInvoice.guest_phone}
+                  {((detailedInvoice.customer as Customer)?.address || detailedInvoice.guest_address) && (
+                    <div className="text-sm text-gray-600">
+                      {(detailedInvoice.customer as Customer)?.address || detailedInvoice.guest_address}
                     </div>
                   )}
-                  {(detailedInvoice.customer?.address || detailedInvoice.guest_address) && (
-                    <div className="text-sm text-muted-foreground whitespace-pre-line">
-                      {detailedInvoice.customer?.address || detailedInvoice.guest_address}
-                    </div>
-                  )}
-                  {(detailedInvoice.customer?.gstin || detailedInvoice.guest_gstin) && (
-                    <div className="text-sm">
-                      <span className="font-medium">GSTIN:</span> 
-                      <span className="font-mono ml-2">
-                        {detailedInvoice.customer?.gstin || detailedInvoice.guest_gstin}
-                      </span>
+                  {((detailedInvoice.customer as Customer)?.city || (detailedInvoice.customer as Customer)?.state || (detailedInvoice.customer as Customer)?.pincode) && (
+                    <div className="text-sm text-gray-600">
+                      {[(detailedInvoice.customer as Customer)?.city, (detailedInvoice.customer as Customer)?.state, (detailedInvoice.customer as Customer)?.pincode].filter(Boolean).join(', ')}
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Invoice Information */}
-              <div className="p-4 rounded-lg border border-gray-200 shadow-sm" style={{backgroundColor: '#eff3ff'}}>
-                <h3 className="text-lg font-semibold pb-2" style={{background: 'linear-gradient(135deg, #374151, #1f2937)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text'}}>BILLED FROM</h3>
-                <div className="space-y-2">
-                  <div className="font-medium text-lg">Ezazul Haque</div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-800 mb-3">BILLED BY</h3>
+                <div className="space-y-1">
+                  <div className="font-bold text-base">Ezazul Haque</div>
                   <div className="text-sm text-gray-600">Nalhati to Rajgram Road, Vill :- Kaigoria, Post :- Diha, West Bengal, India - 731220</div>
-                  <div className="text-sm">
-                    <span className="font-medium">GSTIN:</span> 
-                    <span className="font-mono ml-2">19ADOPH4023K1ZD</span>
-                  </div>
-                  <div className="text-sm">
-                    <span className="font-medium">PAN:</span> 
-                    <span className="font-mono ml-2">ADOPH4023K</span>
+                  <div className="text-sm text-gray-600 space-y-1 mt-2">
+                    <div><span className="font-medium">GSTIN:</span> 19ADOPH4023K1ZD</div>
+                    <div><span className="font-medium">PAN:</span> ADOPH4023K</div>
                   </div>
                 </div>
               </div>
@@ -231,154 +212,132 @@ export const ViewInvoiceDialog = ({ open, onOpenChange, invoice, onDownload }: V
             <Separator className="my-6" />
 
             {/* Invoice Items */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mb-4 text-blue-800">Items</h3>
-              <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                <div className="text-white grid grid-cols-12 gap-2 p-3 text-xs font-medium" style={{background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)'}}>
-                  <div className="col-span-3">Product (Description)</div>
-                  <div className="col-span-1 text-center">HSN</div>
-                  <div className="col-span-1 text-center">Unit</div>
-                  <div className="col-span-1 text-center">Qty</div>
-                  <div className="col-span-1 text-right">Rate/Unit</div>
-                  <div className="col-span-1 text-right">Total</div>
-                  <div className="col-span-1 text-right">Taxable Value</div>
-                  <div className="col-span-1 text-right">CGST</div>
-                  <div className="col-span-1 text-right">SGST</div>
-                  <div className="col-span-1 text-right">Amount</div>
-                </div>
-                {detailedInvoice.invoice_items?.map((item: InvoiceItem, index: number) => {
-                  // Calculate GST breakdown for each item
-                  const rateWithoutGST = item.unit_price / (1 + item.tax_rate / 100);
-                  const taxableValue = item.quantity * rateWithoutGST;
-                  const totalAmount = item.quantity * item.unit_price;
-                  const taxAmount = totalAmount - taxableValue;
-                  const cgstAmount = taxAmount / 2;
-                  const sgstAmount = taxAmount / 2;
-                  
-                  return (
-                    <div key={item.id} className={`grid grid-cols-12 gap-2 p-3 text-xs hover:bg-blue-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                      <div className="col-span-3">
-                        <div className="font-medium text-sm">{item.product?.name || 'Custom Product'}</div>
-                        <div className="text-muted-foreground text-xs">
-                          SKU: {item.product?.sku || 'N/A'}
-                        </div>
-                      </div>
-                      <div className="col-span-1 text-center text-xs">
-                        {item.product?.hsn_code || 'N/A'}
-                      </div>
-                      <div className="col-span-1 text-center text-xs">
-                        {item.product?.unit || 'N/A'}
-                      </div>
-                      <div className="col-span-1 text-center text-xs">
-                        {item.quantity}
-                      </div>
-                      <div className="col-span-1 text-right text-xs">
-                        {formatCurrency(item.unit_price)}
-                      </div>
-                      <div className="col-span-1 text-right text-xs font-medium">
-                        {formatCurrency(totalAmount)}
-                      </div>
-                      <div className="col-span-1 text-right text-xs">
-                        {formatCurrency(taxableValue)}
-                      </div>
-                      <div className="col-span-1 text-right text-xs">
-                        {formatCurrency(cgstAmount)}
-                        <div className="text-muted-foreground">({(item.tax_rate/2).toFixed(1)}%)</div>
-                      </div>
-                      <div className="col-span-1 text-right text-xs">
-                        {formatCurrency(sgstAmount)}
-                        <div className="text-muted-foreground">({(item.tax_rate/2).toFixed(1)}%)</div>
-                      </div>
-                      <div className="col-span-1 text-right text-xs font-semibold">
-                        {formatCurrency(totalAmount)}
-                      </div>
-                    </div>
-                  );
-                })}
+            <div className="mb-8">
+              <h3 className="text-lg font-bold text-gray-800 mb-4">ITEMS</h3>
+              <div className="border border-gray-300 overflow-hidden">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-gray-100 text-gray-800">
+                      <th className="text-left p-2 text-xs font-medium border-r border-gray-300">Item</th>
+                      <th className="text-center p-2 text-xs font-medium border-r border-gray-300">HSN/SAC</th>
+                      <th className="text-center p-2 text-xs font-medium border-r border-gray-300">Quantity</th>
+                      <th className="text-center p-2 text-xs font-medium border-r border-gray-300">Unit</th>
+                      <th className="text-right p-2 text-xs font-medium border-r border-gray-300">Rate</th>
+                      <th className="text-right p-2 text-xs font-medium border-r border-gray-300">Amount</th>
+                      <th className="text-center p-2 text-xs font-medium border-r border-gray-300">GST Rate</th>
+                      <th className="text-right p-2 text-xs font-medium border-r border-gray-300">CGST</th>
+                      <th className="text-right p-2 text-xs font-medium border-r border-gray-300">SGST</th>
+                      <th className="text-right p-2 text-xs font-medium">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {detailedInvoice.invoice_items?.map((item: InvoiceItem, index: number) => {
+                      // Calculate GST breakdown for each item
+                      const rateWithoutGST = item.unit_price / (1 + item.tax_rate / 100);
+                      const taxableValue = item.quantity * rateWithoutGST;
+                      const totalAmount = item.quantity * item.unit_price;
+                      const taxAmount = totalAmount - taxableValue;
+                      const cgstAmount = taxAmount / 2;
+                      const sgstAmount = taxAmount / 2;
+                      
+                      return (
+                        <tr key={item.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                          <td className="p-2 text-xs border-r border-gray-300">{item.product?.name || 'Custom Product'}</td>
+                          <td className="p-2 text-xs text-center border-r border-gray-300">{item.product?.hsn_code || '2160'}</td>
+                          <td className="p-2 text-xs text-center border-r border-gray-300">{item.quantity}</td>
+                          <td className="p-2 text-xs text-center border-r border-gray-300">{item.product?.unit || 'Nos'}</td>
+                          <td className="p-2 text-xs text-right border-r border-gray-300">{formatCurrency(rateWithoutGST)}</td>
+                          <td className="p-2 text-xs text-right border-r border-gray-300">{formatCurrency(taxableValue)}</td>
+                          <td className="p-2 text-xs text-center border-r border-gray-300">{item.tax_rate}%</td>
+                          <td className="p-2 text-xs text-right border-r border-gray-300">{formatCurrency(cgstAmount)}</td>
+                          <td className="p-2 text-xs text-right border-r border-gray-300">{formatCurrency(sgstAmount)}</td>
+                          <td className="p-2 text-xs text-right font-medium">{formatCurrency(totalAmount)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             </div>
 
             {/* Invoice Summary */}
-            <div className="p-6 rounded-xl border border-gray-200 shadow-sm" style={{background: 'linear-gradient(135deg, #fefefe 0%, #f8fafc 100%)'}}>
-              <div className="flex justify-end">
-                <div className="w-full max-w-md space-y-3">
-                  {(() => {
-                    // Calculate GST-compliant totals from invoice items
-                    let totalTaxableValue = 0;
-                    let totalCGST = 0;
-                    let totalSGST = 0;
-                    let grandTotal = 0;
+            <div className="flex justify-end mb-8">
+              <div className="w-80">
+                {(() => {
+                  // Calculate GST-compliant totals from invoice items
+                  let totalTaxableValue = 0;
+                  let totalCGST = 0;
+                  let totalSGST = 0;
+                  let grandTotal = 0;
+                  
+                  detailedInvoice.invoice_items?.forEach((item: InvoiceItem) => {
+                    const rateWithoutGST = item.unit_price / (1 + item.tax_rate / 100);
+                    const itemTaxableValue = item.quantity * rateWithoutGST;
+                    const itemTotalAmount = item.quantity * item.unit_price;
+                    const itemTaxAmount = itemTotalAmount - itemTaxableValue;
                     
-                    detailedInvoice.invoice_items?.forEach((item: InvoiceItem) => {
-                      const rateWithoutGST = item.unit_price / (1 + item.tax_rate / 100);
-                      const itemTaxableValue = item.quantity * rateWithoutGST;
-                      const itemTotalAmount = item.quantity * item.unit_price;
-                      const itemTaxAmount = itemTotalAmount - itemTaxableValue;
-                      
-                      totalTaxableValue += itemTaxableValue;
-                      totalCGST += itemTaxAmount / 2;
-                      totalSGST += itemTaxAmount / 2;
-                      grandTotal += itemTotalAmount;
-                    });
-                    
-                    return (
-                      <>
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-sm text-gray-700">
-                            <span>Amount:</span>
-                            <span className="font-medium">{formatCurrency(totalTaxableValue)}</span>
-                          </div>
-                          <div className="flex justify-between text-sm text-gray-700">
-                            <span>CGST:</span>
-                            <span className="font-medium">{formatCurrency(totalCGST)}</span>
-                          </div>
-                          <div className="flex justify-between text-sm text-gray-700">
-                            <span>SGST:</span>
-                            <span className="font-medium">{formatCurrency(totalSGST)}</span>
-                          </div>
-                          <Separator className="bg-gray-200" />
-                          <div className="flex justify-between text-lg font-bold p-2 rounded" style={{background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)', color: '#059669'}}>
-                            <span>Total (INR):</span>
-                            <span>{formatCurrency(detailedInvoice.total_amount)}</span>
-                          </div>
+                    totalTaxableValue += itemTaxableValue;
+                    totalCGST += itemTaxAmount / 2;
+                    totalSGST += itemTaxAmount / 2;
+                    grandTotal += itemTotalAmount;
+                  });
+                  
+                  return (
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm text-gray-700 py-1">
+                        <span>Amount:</span>
+                        <span className="font-medium">{formatCurrency(totalTaxableValue)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm text-gray-700 py-1">
+                        <span>CGST:</span>
+                        <span className="font-medium">{formatCurrency(totalCGST)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm text-gray-700 py-1">
+                        <span>SGST:</span>
+                        <span className="font-medium">{formatCurrency(totalSGST)}</span>
+                      </div>
+                      <div className="border-t border-gray-300 pt-2">
+                        <div className="flex justify-between text-lg font-bold text-gray-800">
+                          <span>Total (INR):</span>
+                          <span>{formatCurrency(detailedInvoice.total_amount)}</span>
                         </div>
-                      </>
-                    );
-                  })()}
-                </div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 
             {/* Bank Details */}
-            <div className="mt-6 p-4 rounded-lg border border-gray-200 shadow-sm" style={{backgroundColor: '#eff3ff'}}>
-              <h4 className="font-medium mb-3 text-gray-800">Bank Details</h4>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="flex gap-2">
+            <div className="mb-8">
+              <h3 className="text-lg font-bold text-gray-800 mb-4">Bank Details</h3>
+              <div className="grid grid-cols-3 gap-x-8 gap-y-2 text-sm">
+                <div>
                   <span className="font-medium text-gray-600">Account Name:</span>
-                  <span className="text-gray-800">Ezazul Haque</span>
+                  <div className="text-gray-800">Ezazul Haque</div>
                 </div>
-                <div className="flex gap-2">
+                <div>
                   <span className="font-medium text-gray-600">Account Number:</span>
-                  <span className="text-gray-800">1234567890</span>
+                  <div className="text-gray-800">000000000000</div>
                 </div>
-                <div className="flex gap-2">
-                  <span className="font-medium text-gray-600">IFSC Code:</span>
-                  <span className="text-gray-800">SBIN0001234</span>
-                </div>
-                <div className="flex gap-2">
+                <div>
                   <span className="font-medium text-gray-600">Account Type:</span>
-                  <span className="text-gray-800">Current</span>
+                  <div className="text-gray-800">Current</div>
                 </div>
-                <div className="flex gap-2 col-span-2">
+                <div>
+                  <span className="font-medium text-gray-600">IFSC:</span>
+                  <div className="text-gray-800">SBIN0008540</div>
+                </div>
+                <div className="col-span-2">
                   <span className="font-medium text-gray-600">Bank:</span>
-                  <span className="text-gray-800">State Bank of India</span>
+                  <div className="text-gray-800">State Bank of India</div>
                 </div>
               </div>
             </div>
 
             {/* Notes */}
             {detailedInvoice.notes && (
-              <div className="mt-6 p-4 rounded-lg border border-gray-200" style={{backgroundColor: '#eff3ff'}}>
+              <div className="mt-6 p-4 rounded-lg border border-gray-200" style={{backgroundColor: '#f8fafc'}}>
                 <h4 className="font-medium mb-2 text-gray-800">Notes:</h4>
                 <p className="text-sm text-gray-700 whitespace-pre-line">
                   {detailedInvoice.notes}
@@ -388,8 +347,8 @@ export const ViewInvoiceDialog = ({ open, onOpenChange, invoice, onDownload }: V
 
             {/* Footer */}
             <div className="mt-8 text-center">
-              <div className="text-white p-4 rounded-lg" style={{background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)'}}>
-                <p className="font-semibold text-lg">Thank you for business with us!</p>
+              <div className="text-gray-800 p-4 bg-gray-100 rounded">
+                <p className="font-semibold text-base">Thank you for business with us!</p>
               </div>
             </div>
           </div>

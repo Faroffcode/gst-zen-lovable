@@ -21,7 +21,7 @@ export interface InvoiceSettings {
 export const getInvoiceSettings = (): InvoiceSettings => {
   const defaultSettings: InvoiceSettings = {
     companyName: "BIO TECH CENTRE",
-    companyTagline: "Professional Bio-Technology Solutions",
+    companyTagline: "Professional",
     logoText: "BTC",
     primaryColor: "#2563eb",
     useCustomTemplate: false,
@@ -126,6 +126,9 @@ export const replacePlaceholders = (
     '{{CUSTOMER_EMAIL}}': (invoice.customer as { email?: string })?.email || invoice.guest_email || '',
     '{{CUSTOMER_PHONE}}': (invoice.customer as { phone?: string })?.phone || invoice.guest_phone || '',
     '{{CUSTOMER_ADDRESS}}': (invoice.customer as { address?: string })?.address || invoice.guest_address || '',
+    '{{CUSTOMER_CITY}}': (invoice.customer as { city?: string })?.city || '',
+    '{{CUSTOMER_STATE}}': (invoice.customer as { state?: string })?.state || '',
+    '{{CUSTOMER_PINCODE}}': (invoice.customer as { pincode?: string })?.pincode || '',
     '{{CUSTOMER_GSTIN}}': invoice.customer?.gstin || invoice.guest_gstin || '',
     '{{SUBTOTAL}}': formatCurrency(invoice.subtotal, settings),
     '{{TAX_AMOUNT}}': formatCurrency(invoice.tax_amount, settings),
