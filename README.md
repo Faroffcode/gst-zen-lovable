@@ -43,7 +43,7 @@ A modern, comprehensive GST (Goods and Services Tax) management system built wit
 - **Multiple Tax Rates**: Support for different GST rates (5%, 12%, 18%, 28%)
 - **Invoice Status Tracking**: Draft, Sent, Paid, Cancelled status management
 - **PDF Generation**: Download invoices as PDF with professional formatting
-- **Print Support**: Direct printing with print-optimized layouts
+
 - **Edit & Delete**: Full CRUD operations on invoices
 - **Search & Filter**: Advanced search and filtering capabilities
 
@@ -172,7 +172,7 @@ A modern, comprehensive GST (Goods and Services Tax) management system built wit
 3. Add products and quantities
 4. System calculates GST automatically
 5. Save as draft or mark as sent
-6. Download PDF or print directly
+6. Download PDF
 
 #### Managing Inventory
 1. Go to Inventory → Add Product
@@ -209,7 +209,7 @@ SUPABASE_ACCESS_TOKEN=your_access_token
 ### PDF Invoice Generation
 - Generate professional invoices with automatic GST calculations
 - Download invoices as PDF files
-- Print invoices directly from the browser
+
 
 ## 📁 Project Structure
 

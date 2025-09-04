@@ -328,7 +328,7 @@ const Invoices = () => {
       if (result.success) {
         toast({
           title: "Success", 
-          description: "Invoice PDF is being generated...",
+          description: "Invoice PDF downloaded successfully!",
         });
       } else {
         // Fallback to HTML download

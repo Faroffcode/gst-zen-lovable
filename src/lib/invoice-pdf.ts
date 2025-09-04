@@ -2,8 +2,10 @@ import { Invoice, InvoiceItem } from "@/hooks/useInvoices";
 import { getInvoiceSettings, formatCurrency, formatDate, processCustomTemplate } from "./template-processor";
 import { useToast } from "@/hooks/use-toast";
 import { sendFileToTelegram } from "@/lib/telegram";
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
-// PDF generation utility using browser's print functionality and CSS
+// PDF generation utility for downloading invoice as actual PDF file
 export const generateInvoicePDF = async (invoice: Invoice, invoiceItems: InvoiceItem[]) => {
   const settings = getInvoiceSettings();
   
@@ -22,8 +24,8 @@ export const generateInvoicePDF = async (invoice: Invoice, invoiceItems: Invoice
     htmlContent = generateDefaultTemplate(invoice, invoiceItems, settings);
   }
 
-  // Standard browser print
-  printInvoice(htmlContent);
+  // Generate and download as PDF
+  await downloadInvoiceAsPDF(htmlContent, invoice.invoice_number);
   return { success: true };
 };
 
@@ -52,30 +54,71 @@ export const generateInvoicePDFBlob = async (invoice: Invoice, invoiceItems: Inv
 
 // Helper function to convert HTML to PDF blob
 const convertHtmlToPdfBlob = async (htmlContent: string): Promise<Blob> => {
-  // Create a Blob with the HTML content
-  const blob = new Blob([htmlContent], { type: 'text/html' });
-  return blob;
-};
+  try {
+    // Create a temporary container element
+    const tempContainer = document.createElement('div');
+    tempContainer.innerHTML = htmlContent;
+    tempContainer.style.position = 'absolute';
+    tempContainer.style.left = '-9999px';
+    tempContainer.style.top = '0';
+    tempContainer.style.width = '210mm'; // A4 width
+    tempContainer.style.backgroundColor = 'white';
+    document.body.appendChild(tempContainer);
 
-// Helper function to print invoice using browser
-const printInvoice = (htmlContent: string) => {
-  const printWindow = window.open('', '_blank');
-  
-  if (!printWindow) {
-    throw new Error('Unable to open print window. Please check your browser settings.');
+    // Convert HTML to canvas
+    const canvas = await html2canvas(tempContainer, {
+      scale: 2, // Higher quality
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff',
+      width: 794, // A4 width in pixels (210mm)
+      height: tempContainer.scrollHeight
+    });
+
+    // Remove temporary container
+    document.body.removeChild(tempContainer);
+
+    // Create PDF with proper margins
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
+    
+    // Set margins
+    const margin = 15; // 15mm margins on all sides
+    const pageWidth = 210 - (margin * 2); // A4 width minus margins
+    const pageHeight = 297 - (margin * 2); // A4 height minus margins
+    
+    const imgWidth = pageWidth; // Use available width
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    let heightLeft = imgHeight;
+
+    let position = margin; // Start with top margin
+
+    // Add first page
+    pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+
+    // Add additional pages if needed
+    while (heightLeft >= 0) {
+      position = heightLeft - imgHeight + margin;
+      pdf.addPage();
+      pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+    }
+
+    // Return PDF as blob
+    return pdf.output('blob');
+  } catch (error) {
+    console.error('Error generating PDF blob:', error);
+    // Fallback to HTML blob
+    return new Blob([htmlContent], { type: 'text/html' });
   }
-
-  // Write content to the print window
-  printWindow.document.write(htmlContent);
-  printWindow.document.close();
-  
-  // Wait for content to load, then print
-  printWindow.onload = () => {
-    setTimeout(() => {
-      printWindow.print();
-    }, 500);
-  };
 };
+
+
 
 // Generate default template
 const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], settings: { companyName: string; companyTagline: string; logoText: string; footerText: string; primaryColor: string }): string => {
@@ -99,18 +142,42 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
           color: #1e293b;
           max-width: 100%;
           margin: 0;
-          padding: 15px;
-          background: white;
+          padding: 20px;
+          background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
           font-size: 12px;
+          min-height: 100vh;
+        }
+        
+        .invoice-container {
+          background: white;
+          border-radius: 12px;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+          padding: 30px;
+          margin: 0 auto;
+          max-width: 800px;
+          position: relative;
+          overflow: hidden;
+        }
+        
+        .invoice-container::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 4px;
+          background: linear-gradient(90deg, #3b82f6, #8b5cf6, #06b6d4, #10b981);
         }
         
         .header {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          margin-bottom: 20px;
-          border-bottom: 1px solid #e5e7eb;
-          padding-bottom: 15px;
+          margin-bottom: 25px;
+          padding: 20px;
+          background: #eff3ff;
+          border-radius: 8px;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
         
         .company-info {
@@ -120,7 +187,10 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
         .company-name {
           font-size: 1.8em;
           font-weight: bold;
-          color: #1e293b;
+          background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
           margin: 0 0 5px 0;
         }
         
@@ -137,7 +207,10 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
         .invoice-title {
           font-size: 1.8em;
           font-weight: bold;
-          color: #1e293b;
+          background: linear-gradient(135deg, #059669, #0d9488);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
           margin: 0 0 10px 0;
         }
         
@@ -168,21 +241,26 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 20px;
-          margin-bottom: 20px;
+          margin-bottom: 25px;
         }
         
         .billed-to, .billed-from {
-          border: 1px solid #e5e7eb;
-          padding: 12px;
-          border-radius: 4px;
+          padding: 20px;
+          border-radius: 8px;
+          background: #eff3ff;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         }
         
         .section-title {
           font-size: 1.1em;
           font-weight: bold;
-          color: #1e293b;
+          background: linear-gradient(135deg, #374151, #1f2937);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
           margin-bottom: 8px;
           text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
         
         .billing-info {
@@ -228,33 +306,35 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
         }
         
         .items-section {
-          margin-bottom: 20px;
+          margin-bottom: 25px;
         }
         
         .items-table {
           width: 100%;
           border-collapse: collapse;
-          margin-top: 10px;
-          border: 1px solid #e5e7eb;
+          margin-top: 15px;
           font-size: 0.8em;
+          border-radius: 8px;
+          overflow: hidden;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         }
         
         .items-table th {
-          background: #f8fafc;
-          color: #1e293b;
-          padding: 6px 4px;
+          background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+          color: white;
+          padding: 8px 4px;
           text-align: center;
           font-weight: bold;
           font-size: 0.8em;
-          border: 1px solid #e5e7eb;
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
         }
         
         .items-table td {
-          padding: 6px 4px;
-          border: 1px solid #e5e7eb;
+          padding: 8px 4px;
           vertical-align: middle;
           text-align: center;
           font-size: 0.8em;
+          background: white;
         }
         
         .items-table td:first-child {
@@ -289,13 +369,15 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
         .summary-section {
           display: flex;
           justify-content: flex-end;
-          margin: 15px 0;
+          margin: 20px 0;
         }
         
         .summary-content {
-          width: 250px;
-          border: 1px solid #e5e7eb;
-          padding: 10px;
+          width: 280px;
+          padding: 20px;
+          border-radius: 8px;
+          background: linear-gradient(135deg, #fefefe 0%, #f8fafc 100%);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
         
         .summary-row {
@@ -308,20 +390,22 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
         
         .summary-row:last-child {
           border-bottom: none;
-          border-top: 1px solid #1e293b;
           font-weight: bold;
-          font-size: 1em;
-          margin-top: 5px;
-          padding-top: 5px;
-          color: #1e293b;
+          font-size: 1.1em;
+          margin-top: 8px;
+          padding-top: 8px;
+          background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+          border-radius: 4px;
+          padding: 8px 12px;
+          color: #059669;
         }
         
         .bank-details {
-          margin-top: 20px;
-          padding: 12px;
-          border: 1px solid #e5e7eb;
-          border-radius: 4px;
-          background: #f8fafc;
+          margin-top: 25px;
+          padding: 20px;
+          border-radius: 8px;
+          background: #eff3ff;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         }
         
         .bank-title {
@@ -356,19 +440,22 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
         
         .footer-message {
           text-align: center;
-          margin-top: 20px;
-          padding: 10px;
-          font-size: 1em;
-          color: #1e293b;
+          margin-top: 25px;
+          padding: 20px;
+          font-size: 1.1em;
+          background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+          color: white;
+          border-radius: 8px;
+          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
           font-weight: 500;
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
         }
         
         .notes-section {
-          background: #fef3c7;
+          background: #eff3ff;
           padding: 20px;
           border-radius: 8px;
           margin: 30px 0;
-          border-left: 4px solid #f59e0b;
         }
         
         .notes-title {
@@ -426,11 +513,12 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
       </style>
     </head>
     <body>
-      <div class="header">
-        <div class="company-info">
+      <div class="invoice-container">
+        <div class="header">
+          <div class="company-info">
           <div class="company-name">${settings.companyName}</div>
           <div class="company-tagline">${settings.companyTagline}</div>
-        </div>
+              </div>
         <div class="invoice-header">
           <div class="invoice-title">Invoice</div>
           <div class="invoice-details">
@@ -441,7 +529,7 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
             <div class="invoice-detail-row">
               <span class="invoice-label">Invoice Date:</span>
               <span class="invoice-value">${formatDate(invoice.invoice_date, settings)}</span>
-            </div>
+          </div>
           </div>
         </div>
       </div>
@@ -569,7 +657,7 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
           <div class="bank-row">
             <span class="bank-label">Account Name:</span>
             <span class="bank-value">Ezazul Haque</span>
-          </div>
+        </div>
           <div class="bank-row">
             <span class="bank-label">Account Number:</span>
             <span class="bank-value">000000000000</span>
@@ -592,6 +680,7 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
       <div class="footer-message">
         Thank you for business with us!
       </div>
+      </div>
     </body>
     </html>
   `;
@@ -599,28 +688,85 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
   return htmlContent;
 };
 
-// Write content to new window and print
-const printContent = (htmlContent: string) => {
-  const printWindow = window.open('', '_blank');
-  
-  if (!printWindow) {
-    throw new Error('Unable to open print window. Please check your browser settings.');
+// Generate and download invoice as PDF file
+const downloadInvoiceAsPDF = async (htmlContent: string, invoiceNumber: string) => {
+  try {
+    // Create a temporary container element
+    const tempContainer = document.createElement('div');
+    tempContainer.innerHTML = htmlContent;
+    tempContainer.style.position = 'absolute';
+    tempContainer.style.left = '-9999px';
+    tempContainer.style.top = '0';
+    tempContainer.style.width = '210mm'; // A4 width
+    tempContainer.style.backgroundColor = 'white';
+    document.body.appendChild(tempContainer);
+
+    // Convert HTML to canvas
+    const canvas = await html2canvas(tempContainer, {
+      scale: 2, // Higher quality
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff',
+      width: 794, // A4 width in pixels (210mm)
+      height: tempContainer.scrollHeight
+    });
+
+    // Remove temporary container
+    document.body.removeChild(tempContainer);
+
+    // Create PDF with proper margins
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
+    
+    // Set margins
+    const margin = 15; // 15mm margins on all sides
+    const pageWidth = 210 - (margin * 2); // A4 width minus margins
+    const pageHeight = 297 - (margin * 2); // A4 height minus margins
+    
+    const imgWidth = pageWidth; // Use available width
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    let heightLeft = imgHeight;
+
+    let position = margin; // Start with top margin
+
+    // Add first page
+    pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+
+    // Add additional pages if needed
+    while (heightLeft >= 0) {
+      position = heightLeft - imgHeight + margin;
+      pdf.addPage();
+      pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+    }
+
+    // Download the PDF
+    const fileName = `Invoice_${invoiceNumber}_${new Date().toISOString().split('T')[0]}.pdf`;
+    pdf.save(fileName);
+
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    // Fallback to HTML download
+    downloadInvoiceHTMLFallback(htmlContent, invoiceNumber);
   }
+};
 
-  // Write content to new window
-  printWindow.document.write(htmlContent);
-  printWindow.document.close();
-
-  // Wait for content to load then trigger print
-  printWindow.onload = () => {
-    setTimeout(() => {
-      printWindow.print();
-      // Close window after printing (user can cancel)
-      printWindow.onafterprint = () => {
-        printWindow.close();
-      };
-    }, 500);
-  };
+// Fallback function to download as HTML if PDF generation fails
+const downloadInvoiceHTMLFallback = (htmlContent: string, invoiceNumber: string) => {
+  const blob = new Blob([htmlContent], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `Invoice_${invoiceNumber}_${new Date().toISOString().split('T')[0]}.html`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 };
 
 // Alternative: Download as HTML file if PDF generation fails
@@ -666,20 +812,17 @@ export const downloadInvoiceHTML = (invoice: Invoice, invoiceItems: InvoiceItem[
     .items-table { 
       width: 100%; 
       border-collapse: collapse; 
-      margin: 10px 0; 
-      border: 1px solid #e5e7eb; 
+      margin: 10px 0;
       font-size: 0.8em;
     }
     .items-table th { 
-      background: #f8fafc; 
-      color: #1e293b; 
+      background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); 
+      color: white; 
       padding: 6px 4px; 
       text-align: center; 
       font-weight: bold;
-      border: 1px solid #e5e7eb;
     }
     .items-table td { 
-      border: 1px solid #e5e7eb; 
       padding: 6px 4px; 
       text-align: center; 
       font-size: 0.8em;
@@ -695,9 +838,8 @@ export const downloadInvoiceHTML = (invoice: Invoice, invoiceItems: InvoiceItem[
     .items-table td:nth-child(9) { width: 10%; text-align: right; }
     .items-table td:nth-child(10) { width: 10%; text-align: right; }
     .total-section { 
-      background: #f8fafc;
+      background: linear-gradient(135deg, #fefefe 0%, #f8fafc 100%);
       padding: 10px;
-      border: 1px solid #e5e7eb;
       margin-top: 15px;
       text-align: right;
     }
@@ -710,12 +852,11 @@ export const downloadInvoiceHTML = (invoice: Invoice, invoiceItems: InvoiceItem[
       padding-top: 5px; 
     }
     .footer {
-      background: #f8fafc;
-      color: #1e293b;
+      background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+      color: white;
       text-align: center;
       margin-top: 20px;
       padding: 10px;
-      border: 1px solid #e5e7eb;
     }
     @media print {
       body { 
@@ -744,7 +885,7 @@ export const downloadInvoiceHTML = (invoice: Invoice, invoiceItems: InvoiceItem[
           <div style="display: flex; justify-content: flex-end; gap: 10px;">
             <span style="font-weight: bold; color: #374151;">Invoice No #:</span>
             <span style="color: #1e293b;">${invoice.invoice_number}</span>
-          </div>
+    </div>
           <div style="display: flex; justify-content: flex-end; gap: 10px;">
             <span style="font-weight: bold; color: #374151;">Invoice Date:</span>
             <span style="color: #1e293b;">${formatDate(invoice.invoice_date)}</span>
@@ -768,8 +909,8 @@ export const downloadInvoiceHTML = (invoice: Invoice, invoiceItems: InvoiceItem[
         ${(invoice.customer?.pan || invoice.guest_pan) ? 
           `<div style="font-family: 'Courier New', monospace; background: #f8fafc; padding: 4px 8px; border-radius: 4px; display: inline-block; margin: 4px 8px 4px 0; font-size: 0.9em;">PAN: ${invoice.customer?.pan || invoice.guest_pan}</div>` : ''}
       </div>
-    </div>
-
+  </div>
+  
     <div style="border: 1px solid #e5e7eb; padding: 20px; border-radius: 8px;">
       <h3 style="font-size: 1.3em; font-weight: bold; color: #1e293b; margin-bottom: 15px; text-transform: uppercase;">Billed By</h3>
       <div style="line-height: 1.8;">
@@ -863,7 +1004,7 @@ export const downloadInvoiceHTML = (invoice: Invoice, invoiceItems: InvoiceItem[
     </div>
   </div>
   
-  <div style="margin-top: 30px; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f8fafc;">
+  <div style="margin-top: 30px; padding: 20px; border-radius: 8px; background: #eff3ff;">
     <div style="font-size: 1.2em; font-weight: bold; color: #1e293b; margin-bottom: 15px;">Bank Details</div>
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; line-height: 1.6;">
       <div style="display: flex; gap: 10px;">
@@ -889,7 +1030,7 @@ export const downloadInvoiceHTML = (invoice: Invoice, invoiceItems: InvoiceItem[
     </div>
   </div>
   
-  <div style="text-align: center; margin-top: 30px; padding: 20px; font-size: 1.1em; color: #1e293b; font-weight: 500;">
+  <div style="text-align: center; margin-top: 30px; padding: 20px; font-size: 1.1em; color: white; font-weight: 500; background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); border-radius: 8px;">
     Thank you for business with us!
   </div>
 </body>
