@@ -158,7 +158,7 @@ export const ViewInvoiceDialog = ({ open, onOpenChange, invoice, onDownload }: V
               <div className="flex justify-between items-start">
                 <div>
                   <h1 className="text-2xl font-bold text-gray-800 mb-1">BIO TECH CENTRE</h1>
-                  <p className="text-sm text-gray-600 mb-6">Professional Bio-Technology Solutions</p>
+                  <p className="text-sm text-gray-600 mb-6">Professional</p>
                 </div>
                 <div className="text-right">
                   <h2 className="text-2xl font-bold text-gray-800 mb-2">Invoice</h2>

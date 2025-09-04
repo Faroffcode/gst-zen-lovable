@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Search, Filter, Download, Package, X } from "lucide-react";
+import { Search, Filter, Download, Package, X, Tag } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,6 +13,8 @@ import { AddProductDialog } from "@/components/inventory/AddProductDialog";
 import { EditProductDialog } from "@/components/inventory/EditProductDialog";
 import { ViewProductDialog } from "@/components/inventory/ViewProductDialog";
 import { DeleteConfirmDialog } from "@/components/inventory/DeleteConfirmDialog";
+import { StockRegisterDialog } from "@/components/inventory/StockRegisterDialog";
+import { CategoryManagementDialog } from "@/components/inventory/CategoryManagementDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
@@ -33,7 +35,9 @@ const Inventory = () => {
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [viewProduct, setViewProduct] = useState<Product | null>(null);
   const [deleteProduct, setDeleteProduct] = useState<Product | null>(null);
+  const [stockRegisterProduct, setStockRegisterProduct] = useState<Product | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [showCategoryManagement, setShowCategoryManagement] = useState(false);
 
   // Filter states - Stock levels, price range, tax rate, and status
   // Allows comprehensive filtering of products by multiple criteria
@@ -151,6 +155,10 @@ const Inventory = () => {
     setViewProduct(product);
   };
 
+  const handleStockRegister = (product: Product) => {
+    setStockRegisterProduct(product);
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -195,6 +203,15 @@ const Inventory = () => {
             <Download className="h-4 w-4 mr-2" />
             <span className="hidden sm:inline">Export Report</span>
             <span className="sm:hidden">Export</span>
+          </Button>
+          <Button 
+            variant="outline" 
+            className="w-full sm:w-auto"
+            onClick={() => setShowCategoryManagement(true)}
+          >
+            <Tag className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">Manage Categories</span>
+            <span className="sm:hidden">Categories</span>
           </Button>
           <AddProductDialog />
         </div>
@@ -479,6 +496,7 @@ const Inventory = () => {
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 onView={handleView}
+                onStockRegister={handleStockRegister}
               />
             </CardContent>
           </Card>
@@ -532,6 +550,17 @@ const Inventory = () => {
         product={deleteProduct}
         open={!!deleteProduct}
         onOpenChange={(open) => !open && setDeleteProduct(null)}
+      />
+      
+      <StockRegisterDialog
+        product={stockRegisterProduct}
+        open={!!stockRegisterProduct}
+        onOpenChange={(open) => !open && setStockRegisterProduct(null)}
+      />
+      
+      <CategoryManagementDialog
+        open={showCategoryManagement}
+        onOpenChange={setShowCategoryManagement}
       />
     </div>
   );

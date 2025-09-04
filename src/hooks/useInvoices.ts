@@ -85,6 +85,26 @@ export const useInvoice = (id: string) => {
   });
 };
 
+export const useCustomerInvoices = (customerId: string) => {
+  return useQuery({
+    queryKey: ["customer-invoices", customerId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("invoices")
+        .select(`
+          *,
+          customer:customers(name, gstin)
+        `)
+        .eq("customer_id", customerId)
+        .order("created_at", { ascending: false });
+      
+      if (error) throw error;
+      return data as Invoice[];
+    },
+    enabled: !!customerId,
+  });
+};
+
 export const useCreateInvoice = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();

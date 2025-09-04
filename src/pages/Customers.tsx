@@ -10,6 +10,7 @@ import { EditCustomerDialog } from "@/components/customers/EditCustomerDialog";
 import { ViewCustomerDialog } from "@/components/customers/ViewCustomerDialog";
 import { DeleteCustomerDialog } from "@/components/customers/DeleteCustomerDialog";
 import { CustomerTable } from "@/components/customers/CustomerTable";
+import { CustomerInvoicesDialog } from "@/components/customers/CustomerInvoicesDialog";
 import { CustomerStats } from "@/components/customers/CustomerStats";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -19,6 +20,7 @@ const Customers = () => {
   const [editCustomer, setEditCustomer] = useState<Customer | null>(null);
   const [viewCustomer, setViewCustomer] = useState<Customer | null>(null);
   const [deleteCustomer, setDeleteCustomer] = useState<Customer | null>(null);
+  const [invoicesCustomer, setInvoicesCustomer] = useState<Customer | null>(null);
   
   const { data: customers = [], isLoading } = useCustomers();
 
@@ -47,6 +49,10 @@ const Customers = () => {
 
   const handleView = (customer: Customer) => {
     setViewCustomer(customer);
+  };
+
+  const handleViewInvoices = (customer: Customer) => {
+    setInvoicesCustomer(customer);
   };
 
   if (isLoading) {
@@ -133,6 +139,7 @@ const Customers = () => {
               onEdit={handleEdit}
               onDelete={handleDelete}
               onView={handleView}
+              onViewInvoices={handleViewInvoices}
             />
           )}
         </CardContent>
@@ -156,6 +163,12 @@ const Customers = () => {
         customer={deleteCustomer}
         open={!!deleteCustomer}
         onOpenChange={(open) => !open && setDeleteCustomer(null)}
+      />
+      
+      <CustomerInvoicesDialog
+        customer={invoicesCustomer}
+        open={!!invoicesCustomer}
+        onOpenChange={(open) => !open && setInvoicesCustomer(null)}
       />
     </div>
   );

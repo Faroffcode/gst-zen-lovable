@@ -7,13 +7,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Eye, Download, CheckSquare, Square } from "lucide-react";
+import { Trash2, Eye, Download, CheckSquare, Square } from "lucide-react";
 import { Invoice } from "@/hooks/useInvoices";
 import { Checkbox } from "@/components/ui/checkbox";
 
 interface InvoiceTableProps {
   invoices: Invoice[];
-  onEdit: (invoice: Invoice) => void;
   onDelete: (invoiceId: string) => void;
   onView: (invoice: Invoice) => void;
   onDownload: (invoice: Invoice) => void;
@@ -24,8 +23,7 @@ interface InvoiceTableProps {
 
 export const InvoiceTable = ({ 
   invoices, 
-  onEdit, 
-  onDelete, 
+  onDelete,
   onView, 
   onDownload,
   selectedInvoices,
@@ -136,13 +134,6 @@ export const InvoiceTable = ({
                     title="Download PDF"
                   >
                     <Download className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onEdit(invoice)}
-                  >
-                    <Edit className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="ghost"

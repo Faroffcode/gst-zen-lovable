@@ -7,7 +7,6 @@ import { useInvoices, Invoice, useInvoice, useDeleteInvoice } from "@/hooks/useI
 import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
 import { InvoiceTable } from "@/components/invoices/InvoiceTable";
 import { ViewInvoiceDialog } from "@/components/invoices/ViewInvoiceDialog";
-import { EditInvoiceDialog } from "@/components/invoices/EditInvoiceDialog";
 import { DeleteInvoiceDialog } from "@/components/invoices/DeleteInvoiceDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { generateInvoicePDF, downloadInvoiceHTML } from "@/lib/invoice-pdf";
@@ -45,7 +44,6 @@ const Invoices = () => {
   // State for search and pagination
   const [searchQuery, setSearchQuery] = useState("");
   const [viewInvoice, setViewInvoice] = useState<Invoice | null>(null);
-  const [editInvoice, setEditInvoice] = useState<Invoice | null>(null);
   const [deleteInvoice, setDeleteInvoice] = useState<{ id: string; number: string } | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   
@@ -288,10 +286,6 @@ const Invoices = () => {
     }
   };
 
-  // Handle edit invoice
-  const handleEdit = (invoice: Invoice) => {
-    setEditInvoice(invoice);
-  };
 
   // Handle view invoice
   const handleView = (invoice: Invoice) => {
@@ -584,7 +578,6 @@ const Invoices = () => {
           ) : (
             <InvoiceTable
               invoices={filteredInvoices}
-              onEdit={handleEdit}
               onDelete={handleDelete}
               onView={handleView}
               onDownload={handleDownload}
@@ -625,11 +618,6 @@ const Invoices = () => {
         onDownload={handleDownload}
       />
       
-      <EditInvoiceDialog
-        open={!!editInvoice}
-        onOpenChange={(open) => !open && setEditInvoice(null)}
-        invoice={editInvoice}
-      />
       
       <DeleteInvoiceDialog
         open={!!deleteInvoice}

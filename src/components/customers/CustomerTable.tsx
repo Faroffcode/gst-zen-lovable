@@ -16,9 +16,10 @@ interface CustomerTableProps {
   onEdit: (customer: Customer) => void;
   onDelete: (customerId: string) => void;
   onView: (customer: Customer) => void;
+  onViewInvoices: (customer: Customer) => void;
 }
 
-export const CustomerTable = ({ customers, onEdit, onDelete, onView }: CustomerTableProps) => {
+export const CustomerTable = ({ customers, onEdit, onDelete, onView, onViewInvoices }: CustomerTableProps) => {
   if (customers.length === 0) {
     return (
       <div className="text-center py-12">
@@ -48,7 +49,13 @@ export const CustomerTable = ({ customers, onEdit, onDelete, onView }: CustomerT
             <TableRow key={customer.id}>
               <TableCell>
                 <div>
-                  <div className="font-medium">{customer.name}</div>
+                  <button
+                    onClick={() => onViewInvoices(customer)}
+                    className="font-medium text-left hover:text-blue-600 hover:underline cursor-pointer transition-colors"
+                    title="Click to view customer invoices"
+                  >
+                    {customer.name}
+                  </button>
                   <div className="md:hidden text-sm text-muted-foreground">
                     {customer.email && <div>{customer.email}</div>}
                     {customer.phone && <div>{customer.phone}</div>}
@@ -105,6 +112,7 @@ export const CustomerTable = ({ customers, onEdit, onDelete, onView }: CustomerT
                     size="sm"
                     onClick={() => onView(customer)}
                     className="hidden sm:inline-flex"
+                    title="View Customer"
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
@@ -112,6 +120,7 @@ export const CustomerTable = ({ customers, onEdit, onDelete, onView }: CustomerT
                     variant="ghost"
                     size="sm"
                     onClick={() => onEdit(customer)}
+                    title="Edit Customer"
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
@@ -120,6 +129,7 @@ export const CustomerTable = ({ customers, onEdit, onDelete, onView }: CustomerT
                     size="sm"
                     onClick={() => onDelete(customer.id)}
                     className="text-destructive hover:text-destructive"
+                    title="Delete Customer"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

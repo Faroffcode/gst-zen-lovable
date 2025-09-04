@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, Eye } from "lucide-react";
+import { Edit, Trash2, Eye, BarChart3 } from "lucide-react";
 import { Product } from "@/hooks/useProducts";
 
 interface InventoryTableProps {
@@ -16,9 +16,10 @@ interface InventoryTableProps {
   onEdit: (product: Product) => void;
   onDelete: (productId: string) => void;
   onView: (product: Product) => void;
+  onStockRegister: (product: Product) => void;
 }
 
-export const InventoryTable = ({ products, onEdit, onDelete, onView }: InventoryTableProps) => {
+export const InventoryTable = ({ products, onEdit, onDelete, onView, onStockRegister }: InventoryTableProps) => {
   const getStockStatus = (product: Product) => {
     if (product.current_stock === 0) {
       return <Badge variant="destructive">Out of Stock</Badge>;
@@ -70,7 +71,13 @@ export const InventoryTable = ({ products, onEdit, onDelete, onView }: Inventory
               <TableCell className="font-mono text-sm">{product.sku}</TableCell>
               <TableCell>
                 <div>
-                  <div className="font-medium">{product.name}</div>
+                  <button
+                    onClick={() => onStockRegister(product)}
+                    className="font-medium text-left hover:text-blue-600 hover:underline cursor-pointer transition-colors"
+                    title="Click to view stock register"
+                  >
+                    {product.name}
+                  </button>
                   {product.hsn_code && (
                     <div className="text-sm text-muted-foreground">
                       HSN: {product.hsn_code}
@@ -100,13 +107,23 @@ export const InventoryTable = ({ products, onEdit, onDelete, onView }: Inventory
                     variant="ghost"
                     size="sm"
                     onClick={() => onView(product)}
+                    title="View Product"
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
+                    onClick={() => onStockRegister(product)}
+                    title="Stock Register"
+                  >
+                    <BarChart3 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => onEdit(product)}
+                    title="Edit Product"
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
@@ -115,6 +132,7 @@ export const InventoryTable = ({ products, onEdit, onDelete, onView }: Inventory
                     size="sm"
                     onClick={() => onDelete(product.id)}
                     className="text-destructive hover:text-destructive"
+                    title="Delete Product"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

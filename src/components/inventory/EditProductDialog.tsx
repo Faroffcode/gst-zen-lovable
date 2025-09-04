@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useUpdateProduct, Product } from "@/hooks/useProducts";
+import { useCategories } from "@/hooks/useCategories";
 
 interface EditProductDialogProps {
   product: Product | null;
@@ -27,6 +28,7 @@ export const EditProductDialog = ({ product, open, onOpenChange }: EditProductDi
   });
 
   const updateProduct = useUpdateProduct();
+  const { data: categories = [], isLoading: categoriesLoading } = useCategories();
 
   useEffect(() => {
     if (product) {
@@ -98,16 +100,23 @@ export const EditProductDialog = ({ product, open, onOpenChange }: EditProductDi
               <Select
                 value={formData.category}
                 onValueChange={(value) => setFormData({ ...formData, category: value })}
+                disabled={categoriesLoading}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder={categoriesLoading ? "Loading categories..." : "Select category"} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Fertilizers">Fertilizers</SelectItem>
-                  <SelectItem value="Micronutrients">Micronutrients</SelectItem>
-                  <SelectItem value="Bio-fertilizers">Bio-fertilizers</SelectItem>
-                  <SelectItem value="Pesticides">Pesticides</SelectItem>
-                  <SelectItem value="General">General</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.name}>
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{ backgroundColor: category.color }}
+                        />
+                        {category.name}
+                      </div>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
