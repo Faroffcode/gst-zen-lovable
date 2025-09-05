@@ -29,21 +29,21 @@ export const ViewCustomerDialog = ({ customer, open, onOpenChange, onEdit }: Vie
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <div className="flex justify-between items-start">
-            <DialogTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
+            <DialogTitle className="flex items-center gap-3">
+              <User className="h-6 w-6" />
               Customer Details
             </DialogTitle>
             {onEdit && (
               <Button
                 variant="outline"
-                size="sm"
+                size="default"
                 onClick={() => {
                   onEdit(customer);
                   onOpenChange(false);
                 }}
               >
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
+                <Edit className="h-5 w-5 mr-2" />
+                Edit Customer
               </Button>
             )}
           </div>
@@ -53,8 +53,8 @@ export const ViewCustomerDialog = ({ customer, open, onOpenChange, onEdit }: Vie
           {/* Basic Information */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <User className="h-4 w-4" />
+              <CardTitle className="text-lg flex items-center gap-3">
+                <User className="h-5 w-5" />
                 Basic Information
               </CardTitle>
             </CardHeader>
@@ -74,8 +74,8 @@ export const ViewCustomerDialog = ({ customer, open, onOpenChange, onEdit }: Vie
           {/* Contact Information */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Mail className="h-4 w-4" />
+              <CardTitle className="text-lg flex items-center gap-3">
+                <Mail className="h-5 w-5" />
                 Contact Information
               </CardTitle>
             </CardHeader>
@@ -106,8 +106,8 @@ export const ViewCustomerDialog = ({ customer, open, onOpenChange, onEdit }: Vie
           {/* Business Information */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Building className="h-4 w-4" />
+              <CardTitle className="text-lg flex items-center gap-3">
+                <Building className="h-5 w-5" />
                 Business Information
               </CardTitle>
             </CardHeader>
@@ -127,8 +127,8 @@ export const ViewCustomerDialog = ({ customer, open, onOpenChange, onEdit }: Vie
           {/* Address Information */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
+              <CardTitle className="text-lg flex items-center gap-3">
+                <MapPin className="h-5 w-5" />
                 Address Information
               </CardTitle>
             </CardHeader>
@@ -166,8 +166,8 @@ export const ViewCustomerDialog = ({ customer, open, onOpenChange, onEdit }: Vie
           {/* Timeline Information */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
+              <CardTitle className="text-lg flex items-center gap-3">
+                <Calendar className="h-5 w-5" />
                 Timeline
               </CardTitle>
             </CardHeader>

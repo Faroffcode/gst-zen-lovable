@@ -1,11 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { Download, Send, X } from "lucide-react";
+import { Download, Send, X, MessageCircle } from "lucide-react";
 import { Invoice, InvoiceItem, useInvoice } from "@/hooks/useInvoices";
 import { Customer } from "@/hooks/useCustomers";
 import { Skeleton } from "@/components/ui/skeleton";
 import { generateInvoicePDF, sendInvoiceToTelegram } from "@/lib/invoice-pdf";
+import { shareInvoiceToWhatsApp } from "@/lib/whatsapp-share";
 import { useToast } from "@/hooks/use-toast";
 
 interface ViewInvoiceDialogProps {
@@ -126,6 +127,38 @@ export const ViewInvoiceDialog = ({ open, onOpenChange, invoice, onDownload }: V
     }
   };
 
+  const handleShareToWhatsApp = async () => {
+    if (!detailedInvoice) return;
+    
+    try {
+      const result = await shareInvoiceToWhatsApp(
+        detailedInvoice,
+        detailedInvoice.invoice_items || []
+      );
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "Invoice shared to WhatsApp! PDF downloaded and WhatsApp opened.",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to share invoice to WhatsApp. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error sharing invoice to WhatsApp:', error);
+      toast({
+        title: "Error",
+        description: "Failed to share invoice to WhatsApp: " + (error as Error).message,
+        variant: "destructive",
+      });
+    }
+  };
+
+
   if (!invoice) return null;
 
   return (
@@ -133,14 +166,21 @@ export const ViewInvoiceDialog = ({ open, onOpenChange, invoice, onDownload }: V
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <DialogTitle className="text-2xl font-bold">Invoice Details</DialogTitle>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleSendToTelegram}>
-              <Send className="h-4 w-4 mr-2" />
-              Send to Telegram
+          <div className="flex gap-3 flex-wrap">
+            <Button variant="outline" size="default" onClick={handleShareToWhatsApp} className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200">
+              <MessageCircle className="h-5 w-5 mr-2" />
+              <span className="hidden sm:inline">Share via WhatsApp</span>
+              <span className="sm:hidden">WhatsApp</span>
             </Button>
-            <Button variant="outline" size="sm" onClick={handleDownload}>
-              <Download className="h-4 w-4 mr-2" />
-              Download PDF
+            <Button variant="outline" size="default" onClick={handleSendToTelegram}>
+              <Send className="h-5 w-5 mr-2" />
+              <span className="hidden sm:inline">Send to Telegram</span>
+              <span className="sm:hidden">Telegram</span>
+            </Button>
+            <Button variant="outline" size="default" onClick={handleDownload}>
+              <Download className="h-5 w-5 mr-2" />
+              <span className="hidden sm:inline">Download PDF</span>
+              <span className="sm:hidden">Download</span>
             </Button>
           </div>
         </DialogHeader>
@@ -219,7 +259,7 @@ export const ViewInvoiceDialog = ({ open, onOpenChange, invoice, onDownload }: V
               <div className="border border-gray-300 overflow-hidden">
                 <table className="w-full">
                   <thead>
-                    <tr className="bg-gray-100 text-gray-800">
+                    <tr className="bg-[#eff3ff] text-gray-800">
                       <th className="text-left p-2 text-xs font-medium border-r border-gray-300">Item</th>
                       <th className="text-center p-2 text-xs font-medium border-r border-gray-300">HSN/SAC</th>
                       <th className="text-center p-2 text-xs font-medium border-r border-gray-300">Quantity</th>
@@ -243,7 +283,7 @@ export const ViewInvoiceDialog = ({ open, onOpenChange, invoice, onDownload }: V
                       const sgstAmount = taxAmount / 2;
                       
                       return (
-                        <tr key={item.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                        <tr key={item.id} className={index % 2 === 0 ? 'bg-white' : 'bg-[#eff3ff]'}>
                           <td className="p-2 text-xs border-r border-gray-300">{item.product?.name || 'Custom Product'}</td>
                           <td className="p-2 text-xs text-center border-r border-gray-300">{item.product?.hsn_code || '2160'}</td>
                           <td className="p-2 text-xs text-center border-r border-gray-300">{item.quantity}</td>
@@ -339,7 +379,7 @@ export const ViewInvoiceDialog = ({ open, onOpenChange, invoice, onDownload }: V
 
             {/* Notes */}
             {detailedInvoice.notes && (
-              <div className="mt-6 p-4 rounded-lg border border-gray-200" style={{backgroundColor: '#f8fafc'}}>
+              <div className="mt-6 p-4 rounded-lg border border-gray-200" style={{backgroundColor: '#eff3ff'}}>
                 <h4 className="font-medium mb-2 text-gray-800">Notes:</h4>
                 <p className="text-sm text-gray-700 whitespace-pre-line">
                   {detailedInvoice.notes}
@@ -349,7 +389,7 @@ export const ViewInvoiceDialog = ({ open, onOpenChange, invoice, onDownload }: V
 
             {/* Footer */}
             <div className="mt-8 text-center">
-              <div className="text-gray-800 p-4 bg-gray-100 rounded">
+              <div className="text-gray-800 p-4 bg-[#eff3ff] rounded">
                 <p className="font-semibold text-base">Thank you for business with us!</p>
               </div>
             </div>

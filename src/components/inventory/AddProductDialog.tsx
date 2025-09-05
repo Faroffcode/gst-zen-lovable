@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus } from "lucide-react";
 import { useAddProduct } from "@/hooks/useProducts";
 import { useCategories } from "@/hooks/useCategories";
+import { useUnits } from "@/hooks/useUnits";
 
 export const AddProductDialog = () => {
   const [open, setOpen] = useState(false);
@@ -25,6 +26,7 @@ export const AddProductDialog = () => {
 
   const addProduct = useAddProduct();
   const { data: categories = [], isLoading: categoriesLoading } = useCategories();
+  const { data: units = [], isLoading: unitsLoading } = useUnits();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,15 +135,17 @@ export const AddProductDialog = () => {
                 onValueChange={(value) => setFormData({ ...formData, unit: value })}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder={unitsLoading ? "Loading units..." : "Select unit"} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="kg">kg</SelectItem>
-                  <SelectItem value="ltr">ltr</SelectItem>
-                  <SelectItem value="pkt">pkt</SelectItem>
-                  <SelectItem value="pcs">pcs</SelectItem>
-                  <SelectItem value="bag">bag</SelectItem>
-                  <SelectItem value="box">box</SelectItem>
+                  {units.map((unit) => (
+                    <SelectItem key={unit.id} value={unit.abbreviation}>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{unit.abbreviation}</span>
+                        <span className="text-muted-foreground">({unit.name})</span>
+                      </div>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

@@ -66,8 +66,8 @@ export const DeleteCustomerDialog = ({ customer, open, onOpenChange }: DeleteCus
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle className="flex items-center gap-2">
-            {hasInvoiceReferences && <AlertTriangle className="h-5 w-5 text-destructive" />}
+          <AlertDialogTitle className="flex items-center gap-3">
+            {hasInvoiceReferences && <AlertTriangle className="h-6 w-6 text-destructive" />}
             Are you sure?
           </AlertDialogTitle>
           <AlertDialogDescription className="space-y-3">
@@ -78,11 +78,11 @@ export const DeleteCustomerDialog = ({ customer, open, onOpenChange }: DeleteCus
             </div>
             
             {hasInvoiceReferences && (
-              <div className="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-                <AlertTriangle className="h-4 w-4 text-destructive mt-0.5" />
+              <div className="flex items-start gap-3 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" />
                 <div className="text-destructive">
-                  <div className="font-medium mb-1 flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
+                  <div className="font-medium mb-1 flex items-center gap-3">
+                    <FileText className="h-5 w-5" />
                     Cannot delete: Customer has {invoiceReferences.length} invoice(s)
                   </div>
                   <div className="text-sm space-y-1">
@@ -104,8 +104,8 @@ export const DeleteCustomerDialog = ({ customer, open, onOpenChange }: DeleteCus
             )}
             
             {!hasInvoiceReferences && customer.status === 'active' && (
-              <div className="flex items-center gap-2 p-3 bg-warning/10 border border-warning/20 rounded-lg">
-                <AlertTriangle className="h-4 w-4 text-warning" />
+              <div className="flex items-center gap-3 p-3 bg-warning/10 border border-warning/20 rounded-lg">
+                <AlertTriangle className="h-5 w-5 text-warning" />
                 <span className="text-warning">
                   This is an active customer. Consider setting status to 'inactive' instead.
                 </span>

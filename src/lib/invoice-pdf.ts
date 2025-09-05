@@ -166,7 +166,7 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
           align-items: flex-start;
           margin-bottom: 25px;
           padding: 20px;
-          background: #f8fafc;
+          background: #eff3ff;
           border-radius: 8px;
           box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
@@ -232,7 +232,7 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
         .billed-to, .billed-from {
           padding: 20px;
           border-radius: 8px;
-          background: #f8fafc;
+          background: #eff3ff;
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         }
         
@@ -264,7 +264,7 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
         
         .gstin, .pan {
           font-family: 'Courier New', monospace;
-          background: #f8fafc;
+          background: #eff3ff;
           padding: 2px 4px;
           border-radius: 2px;
           display: inline-block;
@@ -302,7 +302,7 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
         }
         
         .items-table th {
-          background: #f3f4f6;
+          background: #eff3ff;
           color: #1e293b;
           padding: 8px 4px;
           text-align: center;
@@ -357,7 +357,7 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
           width: 280px;
           padding: 20px;
           border-radius: 8px;
-          background: #f8fafc;
+          background: #eff3ff;
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
         
@@ -375,17 +375,17 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
           font-size: 1.1em;
           margin-top: 8px;
           padding-top: 8px;
-          background: #f3f4f6;
+          background: #eff3ff;
           border-radius: 4px;
           padding: 8px 12px;
-          color: #1e293b;
+          color: #32cd32;
         }
         
         .bank-details {
           margin-top: 25px;
           padding: 20px;
           border-radius: 8px;
-          background: #f8fafc;
+          background: #eff3ff;
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         }
         
@@ -424,7 +424,7 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
           margin-top: 25px;
           padding: 20px;
           font-size: 1.1em;
-          background: #f3f4f6;
+          background: #eff3ff;
           color: #1e293b;
           border-radius: 8px;
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
@@ -432,7 +432,7 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
         }
         
         .notes-section {
-          background: #f8fafc;
+          background: #eff3ff;
           padding: 20px;
           border-radius: 8px;
           margin: 30px 0;
@@ -445,7 +445,7 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
         }
         
         .footer {
-          background: #f3f4f6;
+          background: #eff3ff;
           color: #1e293b;
           text-align: center;
           margin-top: 40px;
@@ -821,7 +821,7 @@ export const downloadInvoiceHTML = (invoice: Invoice, invoiceItems: InvoiceItem[
     .items-table td:nth-child(9) { width: 10%; text-align: right; }
     .items-table td:nth-child(10) { width: 10%; text-align: right; }
     .total-section { 
-      background: #f8fafc;
+      background: #eff3ff;
       padding: 10px;
       margin-top: 15px;
       text-align: right;
@@ -835,7 +835,7 @@ export const downloadInvoiceHTML = (invoice: Invoice, invoiceItems: InvoiceItem[
       padding-top: 5px; 
     }
     .footer {
-      background: #f3f4f6;
+      background: #eff3ff;
       color: #1e293b;
       text-align: center;
       margin-top: 20px;
@@ -884,8 +884,8 @@ export const downloadInvoiceHTML = (invoice: Invoice, invoiceItems: InvoiceItem[
       <div style="line-height: 1.8;">
         <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 10px; color: #1e293b;">Ezazul Haque</div>
         <div style="color: #64748b; margin-bottom: 8px;">Nalhati to Rajgram Road, Vill :- Kaigoria, Post :- Diha, West Bengal, India - 731220</div>
-        <div style="font-family: 'Courier New', monospace; background: #f8fafc; padding: 4px 8px; border-radius: 4px; display: inline-block; margin: 4px 8px 4px 0; font-size: 0.9em;">GSTIN: 19ADOPH4023K1ZD</div>
-        <div style="font-family: 'Courier New', monospace; background: #f8fafc; padding: 4px 8px; border-radius: 4px; display: inline-block; margin: 4px 8px 4px 0; font-size: 0.9em;">PAN: ADOPH4023K</div>
+        <div style="font-family: 'Courier New', monospace; background: #eff3ff; padding: 4px 8px; border-radius: 4px; display: inline-block; margin: 4px 8px 4px 0; font-size: 0.9em;">GSTIN: 19ADOPH4023K1ZD</div>
+        <div style="font-family: 'Courier New', monospace; background: #eff3ff; padding: 4px 8px; border-radius: 4px; display: inline-block; margin: 4px 8px 4px 0; font-size: 0.9em;">PAN: ADOPH4023K</div>
       </div>
     </div>
   
@@ -903,7 +903,7 @@ export const downloadInvoiceHTML = (invoice: Invoice, invoiceItems: InvoiceItem[
         ${((invoice.customer as Customer)?.city || (invoice.customer as Customer)?.state || (invoice.customer as Customer)?.pincode) ? 
           `<div style="color: #64748b; margin-bottom: 8px;">${[(invoice.customer as Customer)?.city, (invoice.customer as Customer)?.state, (invoice.customer as Customer)?.pincode].filter(Boolean).join(', ')}</div>` : ''}
         ${(invoice.customer?.gstin || invoice.guest_gstin) ? 
-          `<div style="font-family: 'Courier New', monospace; background: #f8fafc; padding: 4px 8px; border-radius: 4px; display: inline-block; margin: 4px 8px 4px 0; font-size: 0.9em;">GSTIN: ${invoice.customer?.gstin || invoice.guest_gstin}</div>` : ''}
+          `<div style="font-family: 'Courier New', monospace; background: #eff3ff; padding: 4px 8px; border-radius: 4px; display: inline-block; margin: 4px 8px 4px 0; font-size: 0.9em;">GSTIN: ${invoice.customer?.gstin || invoice.guest_gstin}</div>` : ''}
       </div>
     </div>
   </div>
@@ -981,7 +981,7 @@ export const downloadInvoiceHTML = (invoice: Invoice, invoiceItems: InvoiceItem[
             <span>SGST:</span>
             <span>${formatCurrency(totalSGST)}</span>
           </div>
-          <div style="display: flex; justify-content: space-between; padding: 5px 0; border-top: 2px solid #1e293b; font-weight: bold; font-size: 1.1em; margin-top: 8px; padding-top: 8px; color: #1e293b;">
+          <div style="display: flex; justify-content: space-between; padding: 5px 0; border-top: 2px solid #1e293b; font-weight: bold; font-size: 1.1em; margin-top: 8px; padding-top: 8px; color: #32cd32;">
             <span>Total (INR):</span>
             <span>${formatCurrency(invoice.total_amount)}</span>
           </div>
@@ -1016,7 +1016,7 @@ export const downloadInvoiceHTML = (invoice: Invoice, invoiceItems: InvoiceItem[
     </div>
   </div>
   
-  <div style="text-align: center; margin-top: 30px; padding: 20px; font-size: 1.1em; color: #1e293b; font-weight: 500; background: #f3f4f6; border-radius: 8px;">
+  <div style="text-align: center; margin-top: 30px; padding: 20px; font-size: 1.1em; color: #1e293b; font-weight: 500; background: #eff3ff; border-radius: 8px;">
     Thank you for business with us!
   </div>
 </body>

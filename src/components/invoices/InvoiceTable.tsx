@@ -7,9 +7,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Trash2, Eye, Download, CheckSquare, Square } from "lucide-react";
+import { Trash2, Eye, Download, CheckSquare, Square, MessageCircle } from "lucide-react";
 import { Invoice } from "@/hooks/useInvoices";
 import { Checkbox } from "@/components/ui/checkbox";
+import { shareInvoiceToWhatsApp } from "@/lib/whatsapp-share";
+import { useToast } from "@/hooks/use-toast";
 
 interface InvoiceTableProps {
   invoices: Invoice[];
@@ -30,6 +32,8 @@ export const InvoiceTable = ({
   onSelectInvoice,
   onSelectAll
 }: InvoiceTableProps) => {
+  const { toast } = useToast();
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -41,6 +45,36 @@ export const InvoiceTable = ({
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-IN');
   };
+
+  const handleShareToWhatsApp = async (invoice: Invoice) => {
+    try {
+      const result = await shareInvoiceToWhatsApp(
+        invoice,
+        invoice.invoice_items || []
+      );
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "Invoice shared to WhatsApp! PDF downloaded and WhatsApp opened.",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to share invoice to WhatsApp. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error sharing invoice to WhatsApp:', error);
+      toast({
+        title: "Error",
+        description: "Failed to share invoice to WhatsApp: " + (error as Error).message,
+        variant: "destructive",
+      });
+    }
+  };
+
 
   if (invoices.length === 0) {
     return (
@@ -74,7 +108,7 @@ export const InvoiceTable = ({
         </TableHeader>
         <TableBody>
           {invoices.map((invoice) => (
-            <TableRow key={invoice.id} className={selectedInvoices.has(invoice.id) ? "bg-blue-50" : ""}>
+            <TableRow key={invoice.id} className={selectedInvoices.has(invoice.id) ? "bg-[#eff3ff]" : ""}>
               <TableCell>
                 <Checkbox
                   checked={selectedInvoices.has(invoice.id)}
@@ -117,14 +151,26 @@ export const InvoiceTable = ({
                 {formatCurrency(invoice.total_amount)}
               </TableCell>
               <TableCell className="text-right">
-                <div className="flex gap-2 justify-end">
+                <div className="flex gap-2 justify-end flex-wrap">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => onView(invoice)}
                     className="hidden sm:inline-flex"
+                    title="View Invoice"
                   >
-                    <Eye className="h-4 w-4" />
+                    <Eye className="h-4 w-4 mr-1" />
+                    <span className="text-xs">View</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleShareToWhatsApp(invoice)}
+                    className="hidden sm:inline-flex text-green-600 hover:text-green-700 hover:bg-green-50"
+                    title="Share via WhatsApp"
+                  >
+                    <MessageCircle className="h-4 w-4 mr-1" />
+                    <span className="text-xs">WhatsApp</span>
                   </Button>
                   <Button
                     variant="ghost"
@@ -133,15 +179,18 @@ export const InvoiceTable = ({
                     className="hidden sm:inline-flex"
                     title="Download PDF"
                   >
-                    <Download className="h-4 w-4" />
+                    <Download className="h-4 w-4 mr-1" />
+                    <span className="text-xs">Download</span>
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => onDelete(invoice.id)}
                     className="text-destructive hover:text-destructive"
+                    title="Delete Invoice"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    <span className="text-xs">Delete</span>
                   </Button>
                 </div>
               </TableCell>

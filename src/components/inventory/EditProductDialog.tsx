@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useUpdateProduct, Product } from "@/hooks/useProducts";
 import { useCategories } from "@/hooks/useCategories";
+import { useUnits } from "@/hooks/useUnits";
 
 interface EditProductDialogProps {
   product: Product | null;
@@ -29,6 +30,7 @@ export const EditProductDialog = ({ product, open, onOpenChange }: EditProductDi
 
   const updateProduct = useUpdateProduct();
   const { data: categories = [], isLoading: categoriesLoading } = useCategories();
+  const { data: units = [], isLoading: unitsLoading } = useUnits();
 
   useEffect(() => {
     if (product) {
@@ -139,15 +141,17 @@ export const EditProductDialog = ({ product, open, onOpenChange }: EditProductDi
                 onValueChange={(value) => setFormData({ ...formData, unit: value })}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder={unitsLoading ? "Loading units..." : "Select unit"} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="kg">kg</SelectItem>
-                  <SelectItem value="ltr">ltr</SelectItem>
-                  <SelectItem value="pkt">pkt</SelectItem>
-                  <SelectItem value="pcs">pcs</SelectItem>
-                  <SelectItem value="bag">bag</SelectItem>
-                  <SelectItem value="box">box</SelectItem>
+                  {units.map((unit) => (
+                    <SelectItem key={unit.id} value={unit.abbreviation}>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{unit.abbreviation}</span>
+                        <span className="text-muted-foreground">({unit.name})</span>
+                      </div>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

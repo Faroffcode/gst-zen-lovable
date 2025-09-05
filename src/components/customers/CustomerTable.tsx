@@ -106,7 +106,7 @@ export const CustomerTable = ({ customers, onEdit, onDelete, onView, onViewInvoi
                 </Badge>
               </TableCell>
               <TableCell className="text-right">
-                <div className="flex gap-2 justify-end">
+                <div className="flex gap-2 justify-end flex-wrap">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -114,7 +114,8 @@ export const CustomerTable = ({ customers, onEdit, onDelete, onView, onViewInvoi
                     className="hidden sm:inline-flex"
                     title="View Customer"
                   >
-                    <Eye className="h-4 w-4" />
+                    <Eye className="h-4 w-4 mr-1" />
+                    <span className="text-xs">View</span>
                   </Button>
                   <Button
                     variant="ghost"
@@ -122,7 +123,8 @@ export const CustomerTable = ({ customers, onEdit, onDelete, onView, onViewInvoi
                     onClick={() => onEdit(customer)}
                     title="Edit Customer"
                   >
-                    <Edit className="h-4 w-4" />
+                    <Edit className="h-4 w-4 mr-1" />
+                    <span className="text-xs">Edit</span>
                   </Button>
                   <Button
                     variant="ghost"
@@ -131,7 +133,8 @@ export const CustomerTable = ({ customers, onEdit, onDelete, onView, onViewInvoi
                     className="text-destructive hover:text-destructive"
                     title="Delete Customer"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    <span className="text-xs">Delete</span>
                   </Button>
                 </div>
               </TableCell>

@@ -30,13 +30,6 @@ export const InventoryTable = ({ products, onEdit, onDelete, onView, onStockRegi
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 2,
-    }).format(amount);
-  };
 
   if (products.length === 0) {
     return (
@@ -58,7 +51,6 @@ export const InventoryTable = ({ products, onEdit, onDelete, onView, onStockRegi
             <TableHead>Product Name</TableHead>
             <TableHead>Category</TableHead>
             <TableHead className="text-right">Current Stock</TableHead>
-            <TableHead className="text-right">Unit Price</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -89,9 +81,6 @@ export const InventoryTable = ({ products, onEdit, onDelete, onView, onStockRegi
               <TableCell className="text-right">
                 {product.current_stock} {product.unit}
               </TableCell>
-              <TableCell className="text-right">
-                {formatCurrency(product.unit_price)}
-              </TableCell>
               <TableCell>{getStockStatus(product)}</TableCell>
               <TableCell className="text-right">
                 <div className="flex gap-2 justify-end">
@@ -100,33 +89,40 @@ export const InventoryTable = ({ products, onEdit, onDelete, onView, onStockRegi
                     size="sm"
                     onClick={() => onView(product)}
                     title="View Product"
+                    className="flex items-center gap-1"
                   >
-                    <Eye className="h-4 w-4" />
+                    <Eye className="h-4 w-4 mr-1" />
+                    <span className="text-xs">View</span>
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => onStockRegister(product)}
                     title="Stock Register"
+                    className="flex items-center gap-1"
                   >
-                    <BarChart3 className="h-4 w-4" />
+                    <BarChart3 className="h-4 w-4 mr-1" />
+                    <span className="text-xs">Register</span>
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => onEdit(product)}
                     title="Edit Product"
+                    className="flex items-center gap-1"
                   >
-                    <Edit className="h-4 w-4" />
+                    <Edit className="h-4 w-4 mr-1" />
+                    <span className="text-xs">Edit</span>
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => onDelete(product.id)}
-                    className="text-destructive hover:text-destructive"
+                    className="text-destructive hover:text-destructive flex items-center gap-1"
                     title="Delete Product"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    <span className="text-xs">Delete</span>
                   </Button>
                 </div>
               </TableCell>

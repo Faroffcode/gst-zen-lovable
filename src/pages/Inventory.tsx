@@ -220,7 +220,7 @@ const Inventory = () => {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Label htmlFor="status-filter" className="text-sm font-medium text-gray-700 whitespace-nowrap">
               Status:
             </Label>
@@ -238,7 +238,7 @@ const Inventory = () => {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="outline" className="w-full sm:w-auto flex items-center justify-center gap-2">
-                <Download className="h-4 w-4" />
+                <Download className="h-5 w-5 mr-2" />
                 <span className="hidden sm:inline">Export Report</span>
                 <span className="sm:hidden">Export</span>
               </Button>
@@ -254,7 +254,7 @@ const Inventory = () => {
                 className="w-full sm:w-auto flex items-center justify-center gap-2"
                 onClick={() => setShowCategoryManagement(true)}
               >
-                <Tag className="h-4 w-4" />
+                <Tag className="h-5 w-5 mr-2" />
                 <span className="hidden sm:inline">Manage Categories</span>
                 <span className="sm:hidden">Categories</span>
               </Button>
@@ -280,18 +280,18 @@ const Inventory = () => {
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
           <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
             <TabsList className="grid w-full sm:w-auto grid-cols-3">
-              <TabsTrigger value="current-stock" className="flex items-center gap-2">
-                <Package className="h-4 w-4" />
+              <TabsTrigger value="current-stock" className="flex items-center gap-3">
+                <Package className="h-5 w-5" />
                 <span className="hidden sm:inline">Current Stock</span>
                 <span className="sm:hidden">Stock</span>
               </TabsTrigger>
-              <TabsTrigger value="stock-movements" className="flex items-center gap-2">
-                <ArrowUpDown className="h-4 w-4" />
+              <TabsTrigger value="stock-movements" className="flex items-center gap-3">
+                <ArrowUpDown className="h-5 w-5" />
                 <span className="hidden sm:inline">Stock Movements</span>
                 <span className="sm:hidden">Movements</span>
               </TabsTrigger>
-              <TabsTrigger value="stock-alerts" className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4" />
+              <TabsTrigger value="stock-alerts" className="flex items-center gap-3">
+                <AlertTriangle className="h-5 w-5" />
                 <span className="hidden sm:inline">Stock Alerts</span>
                 <span className="sm:hidden">Alerts</span>
               </TabsTrigger>
@@ -312,8 +312,8 @@ const Inventory = () => {
               <DialogTrigger asChild>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="outline" size="sm" className="relative flex items-center gap-2">
-                      <Filter className="h-4 w-4" />
+                    <Button variant="outline" size="sm" className="relative flex items-center gap-3">
+                      <Filter className="h-5 w-5" />
                       <span>Filters</span>
                       {hasActiveFilters && (
                         <Badge 
@@ -331,11 +331,11 @@ const Inventory = () => {
                 </Tooltip>
               </DialogTrigger>
               <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2">
-                    <Filter className="h-5 w-5" />
-                    Filter Products
-                  </DialogTitle>
+                                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-3">
+                      <Filter className="h-6 w-6" />
+                      Filter Products
+                    </DialogTitle>
                   <DialogDescription>
                     Apply filters to narrow down your product list.
                   </DialogDescription>
@@ -442,15 +442,15 @@ const Inventory = () => {
                 </div>
 
                 <div className="flex gap-3 pt-4 border-t">
-                  <Button 
-                    variant="outline" 
-                    onClick={clearFilters}
-                    className="flex-1"
-                    disabled={!hasActiveFilters}
-                  >
-                    <X className="h-4 w-4 mr-2" />
-                    Clear
-                  </Button>
+                                      <Button 
+                      variant="outline" 
+                      onClick={clearFilters}
+                      className="flex-1"
+                      disabled={!hasActiveFilters}
+                    >
+                      <X className="h-5 w-5 mr-2" />
+                      Clear
+                    </Button>
                   <Button 
                     onClick={() => setShowFilters(false)}
                     className="flex-1 bg-purple-600 hover:bg-purple-700"
@@ -550,8 +550,8 @@ const Inventory = () => {
           <Card>
             <CardHeader className="pb-4">
               <CardTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Package className="h-5 w-5 text-blue-600" />
+                <div className="flex items-center gap-3">
+                  <Package className="h-6 w-6 text-blue-600" />
                   <span className="text-xl font-semibold">Current Inventory</span>
                 </div>
                 <div className="text-sm font-medium text-muted-foreground bg-gray-100 px-3 py-1 rounded-full">

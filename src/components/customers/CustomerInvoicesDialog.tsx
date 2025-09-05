@@ -56,8 +56,8 @@ export const CustomerInvoicesDialog = ({ open, onOpenChange, customer }: Custome
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-              <FileText className="h-6 w-6" />
+            <DialogTitle className="text-2xl font-bold flex items-center gap-3">
+              <FileText className="h-7 w-7" />
               Invoices for {customer.name}
             </DialogTitle>
             <div className="text-sm text-gray-600 space-y-1">
@@ -77,22 +77,22 @@ export const CustomerInvoicesDialog = ({ open, onOpenChange, customer }: Custome
               {/* Customer Statistics */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-blue-50 p-4 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-blue-600" />
+                  <div className="flex items-center gap-3">
+                    <FileText className="h-6 w-6 text-blue-600" />
                     <span className="text-sm font-medium text-blue-600">Total Invoices</span>
                   </div>
                   <p className="text-2xl font-bold text-blue-600">{totalInvoices}</p>
                 </div>
                 <div className="bg-green-50 p-4 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="h-5 w-5 text-green-600" />
+                  <div className="flex items-center gap-3">
+                    <DollarSign className="h-6 w-6 text-green-600" />
                     <span className="text-sm font-medium text-green-600">Total Amount</span>
                   </div>
                   <p className="text-2xl font-bold text-green-600">{formatCurrency(totalAmount)}</p>
                 </div>
                 <div className="bg-purple-50 p-4 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5 text-purple-600" />
+                  <div className="flex items-center gap-3">
+                    <Calendar className="h-6 w-6 text-purple-600" />
                     <span className="text-sm font-medium text-purple-600">Average Order</span>
                   </div>
                   <p className="text-2xl font-bold text-purple-600">{formatCurrency(averageOrderValue)}</p>
@@ -102,7 +102,7 @@ export const CustomerInvoicesDialog = ({ open, onOpenChange, customer }: Custome
               {/* Invoices Table */}
               {invoices.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
-                  <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <FileText className="h-16 w-16 mx-auto mb-4 text-gray-300" />
                   <p className="text-lg font-medium mb-2">No invoices found</p>
                   <p>This customer hasn't made any purchases yet.</p>
                 </div>
@@ -134,14 +134,15 @@ export const CustomerInvoicesDialog = ({ open, onOpenChange, customer }: Custome
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
-                            <div className="flex gap-2 justify-end">
+                            <div className="flex gap-2 justify-end flex-wrap">
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleView(invoice)}
                                 title="View Invoice"
                               >
-                                <Eye className="h-4 w-4" />
+                                <Eye className="h-4 w-4 mr-1" />
+                                <span className="text-xs">View</span>
                               </Button>
                               <Button
                                 variant="ghost"
@@ -149,7 +150,8 @@ export const CustomerInvoicesDialog = ({ open, onOpenChange, customer }: Custome
                                 onClick={() => handleDownload(invoice)}
                                 title="Download PDF"
                               >
-                                <Download className="h-4 w-4" />
+                                <Download className="h-4 w-4 mr-1" />
+                                <span className="text-xs">Download</span>
                               </Button>
                             </div>
                           </TableCell>
