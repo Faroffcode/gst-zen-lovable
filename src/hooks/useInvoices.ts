@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useRecordSale, useRecordMultipleSales } from "@/hooks/useStockLedger";
-import { sendInvoiceToTelegram } from "@/lib/invoice-pdf";
 
 export interface Invoice {
   id: string;
@@ -184,18 +183,23 @@ export const useCreateInvoice = () => {
           let nextNumber = 1;
           if (existingInvoices && existingInvoices.length > 0) {
             const lastInvoice = existingInvoices[0].invoice_number;
-            const match = lastInvoice?.match(/INV-(\d+)/);
-            if (match) {
-              nextNumber = parseInt(match[1]) + 1;
+            // Check for both INV- and BTC- formats
+            const invMatch = lastInvoice?.match(/INV-(\d+)/);
+            const btcMatch = lastInvoice?.match(/BTC(\d+)/);
+            
+            if (btcMatch) {
+              nextNumber = parseInt(btcMatch[1]) + 1;
+            } else if (invMatch) {
+              nextNumber = parseInt(invMatch[1]) + 1;
             }
           }
           
-          invoiceNumber = `INV-${nextNumber.toString().padStart(4, '0')}`;
+          invoiceNumber = `BTC${nextNumber.toString().padStart(3, '0')}`;
           // Generated invoice number locally
         } catch (fallbackError) {
           // Final fallback: use timestamp
-          const timestamp = Date.now().toString().slice(-4);
-          invoiceNumber = `INV-${timestamp}`;
+          const timestamp = Date.now().toString().slice(-3);
+          invoiceNumber = `BTC${timestamp}`;
           // Using timestamp-based invoice number
         }
       }
@@ -286,76 +290,10 @@ export const useCreateInvoice = () => {
     onSuccess: async (invoice) => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       
-      // Check if Telegram integration is enabled
-      const storageSettings = localStorage.getItem('storageSettings');
-      if (storageSettings) {
-        try {
-          const settings = JSON.parse(storageSettings);
-          if (settings.enableCloudSync && settings.cloudProvider === 'telegram' && 
-              settings.telegramBotToken && settings.telegramChatId) {
-            
-            // Get invoice details with items for sending to Telegram
-            const { data: invoiceDetails, error: detailsError } = await supabase
-              .from("invoices")
-              .select(`
-                *,
-                customer:customers(*),
-                invoice_items(
-                  *,
-                  product:products(name, sku, unit, hsn_code)
-                )
-              `)
-              .eq("id", invoice.id)
-              .single();
-            
-            if (!detailsError && invoiceDetails) {
-              // Send invoice to Telegram
-              const success = await sendInvoiceToTelegram(
-                invoiceDetails,
-                invoiceDetails.invoice_items,
-                {
-                  telegramBotToken: settings.telegramBotToken,
-                  telegramChatId: settings.telegramChatId
-                }
-              );
-              
-              if (success) {
-                toast({
-                  title: "Success",
-                  description: "Invoice created and sent to Telegram successfully",
-                });
-              } else {
-                toast({
-                  title: "Partial Success",
-                  description: "Invoice created successfully, but failed to send to Telegram",
-                  variant: "destructive",
-                });
-              }
-            } else {
-              toast({
-                title: "Success",
-                description: "Invoice created successfully",
-              });
-            }
-          } else {
-            toast({
-              title: "Success",
-              description: "Invoice created successfully",
-            });
-          }
-        } catch (error) {
-          console.error('Error sending invoice to Telegram:', error);
-          toast({
-            title: "Success",
-            description: "Invoice created successfully",
-          });
-        }
-      } else {
-        toast({
-          title: "Success",
-          description: "Invoice created successfully",
-        });
-      }
+      toast({
+        title: "Success",
+        description: "Invoice created successfully",
+      });
     },
     onError: (error: Error) => {
       console.error('Invoice creation failed:', error);

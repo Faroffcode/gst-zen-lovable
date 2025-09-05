@@ -3,83 +3,36 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Calendar, TrendingUp, Package, DollarSign, Users, BarChart3 } from "lucide-react";
+import { TrendingUp, Package, BarChart3 } from "lucide-react";
 import { useInvoices } from "@/hooks/useInvoices";
-import { useProducts } from "@/hooks/useProducts";
 import { useStockTransactions } from "@/hooks/useStockLedger";
 import { useState, useMemo } from "react";
 import { formatCurrency } from "@/lib/template-processor";
-import { LowStockDialog } from "@/components/reports/LowStockDialog";
 
 const Reports = () => {
   const [activeReport, setActiveReport] = useState<'sales' | 'stock'>('sales');
-  const [showLowStockDialog, setShowLowStockDialog] = useState(false);
   
   const { data: invoices = [], isLoading: invoicesLoading } = useInvoices();
-  const { data: products = [], isLoading: productsLoading } = useProducts();
   const { data: stockTransactions = [], isLoading: stockLoading } = useStockTransactions();
 
-  // Calculate sales statistics for current date only
-  const salesStats = useMemo(() => {
-    // Get today's date in YYYY-MM-DD format
+  // Calculate today's invoices for sales register
+  const todayInvoices = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
-    
-    // Filter invoices for today only
-    const todayInvoices = invoices.filter(invoice => 
+    return invoices.filter(invoice => 
       invoice.invoice_date.startsWith(today)
     );
-    
-    const totalRevenue = todayInvoices.reduce((sum, invoice) => sum + invoice.total_amount, 0);
-    const totalInvoices = todayInvoices.length;
-    const averageOrderValue = totalInvoices > 0 ? totalRevenue / totalInvoices : 0;
-    
-    // Monthly revenue (last 30 days) - keeping this for context
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const monthlyRevenue = invoices
-      .filter(invoice => new Date(invoice.invoice_date) >= thirtyDaysAgo)
-      .reduce((sum, invoice) => sum + invoice.total_amount, 0);
-
-    return {
-      totalRevenue,
-      totalInvoices,
-      averageOrderValue,
-      monthlyRevenue,
-      todayInvoices
-    };
   }, [invoices]);
-
-  // Calculate stock statistics
-  const stockStats = useMemo(() => {
-    const totalProducts = products.length;
-    const totalStockValue = products.reduce((sum, product) => 
-      sum + (product.current_stock * product.unit_price), 0
-    );
-    const lowStockProducts = products.filter(product => 
-      product.current_stock <= product.min_stock
-    ).length;
-    const outOfStockProducts = products.filter(product => 
-      product.current_stock === 0
-    ).length;
-
-    return {
-      totalProducts,
-      totalStockValue,
-      lowStockProducts,
-      outOfStockProducts
-    };
-  }, [products]);
 
   // Recent sales transactions (today only)
   const recentSales = useMemo(() => {
-    return salesStats.todayInvoices
+    return todayInvoices
       .slice(0, 10)
       .map(invoice => ({
         ...invoice,
         customerName: invoice.customer?.name || invoice.guest_name || 'Guest',
         date: new Date(invoice.invoice_date).toLocaleDateString('en-IN')
       }));
-  }, [salesStats.todayInvoices]);
+  }, [todayInvoices]);
 
   // Recent stock movements
   const recentStockMovements = useMemo(() => {
@@ -99,7 +52,7 @@ const Reports = () => {
     return new Date(dateString).toLocaleDateString('en-IN');
   };
 
-  if (invoicesLoading || productsLoading || stockLoading) {
+  if (invoicesLoading || stockLoading) {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
@@ -108,15 +61,9 @@ const Reports = () => {
             <p className="text-muted-foreground">Loading real-time data...</p>
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[...Array(4)].map((_, i) => (
-            <Card key={i}>
-              <CardContent className="p-6">
-                <Skeleton className="h-4 w-20 mb-2" />
-                <Skeleton className="h-8 w-16" />
-              </CardContent>
-            </Card>
-          ))}
+        <div className="space-y-4">
+          <Skeleton className="h-10 w-48" />
+          <Skeleton className="h-64 w-full" />
         </div>
       </div>
     );
@@ -131,74 +78,6 @@ const Reports = () => {
         </p>
       </div>
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Today's Revenue</p>
-                <p className="text-2xl font-bold">{formatCurrency(salesStats.totalRevenue)}</p>
-              </div>
-              <DollarSign className="h-8 w-8 text-green-600" />
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {formatCurrency(salesStats.monthlyRevenue)} this month
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Today's Invoices</p>
-                <p className="text-2xl font-bold">{salesStats.totalInvoices}</p>
-              </div>
-              <BarChart3 className="h-8 w-8 text-blue-600" />
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Avg: {formatCurrency(salesStats.averageOrderValue)}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Stock Value</p>
-                <p className="text-2xl font-bold">{formatCurrency(stockStats.totalStockValue)}</p>
-              </div>
-              <Package className="h-8 w-8 text-purple-600" />
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {stockStats.totalProducts} products
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card 
-          className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105"
-          onClick={() => setShowLowStockDialog(true)}
-        >
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Low Stock</p>
-                <p className="text-2xl font-bold text-orange-600">{stockStats.lowStockProducts}</p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-orange-600" />
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {stockStats.outOfStockProducts} out of stock
-            </p>
-            <p className="text-xs text-blue-600 mt-1 font-medium">
-              Click to view details
-            </p>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Report Tabs */}
       <div className="flex gap-2">
@@ -339,11 +218,6 @@ const Reports = () => {
         </Card>
       )}
 
-      <LowStockDialog
-        open={showLowStockDialog}
-        onOpenChange={setShowLowStockDialog}
-        products={products}
-      />
     </div>
   );
 };

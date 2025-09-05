@@ -7,6 +7,7 @@ import { Customer } from "@/hooks/useCustomers";
 import { Skeleton } from "@/components/ui/skeleton";
 import { generateInvoicePDF, sendInvoiceToTelegram } from "@/lib/invoice-pdf";
 import { shareInvoiceToWhatsApp } from "@/lib/whatsapp-share";
+import { getCompanySettings } from "@/lib/company-settings";
 import { useToast } from "@/hooks/use-toast";
 
 interface ViewInvoiceDialogProps {
@@ -18,6 +19,7 @@ interface ViewInvoiceDialogProps {
 
 export const ViewInvoiceDialog = ({ open, onOpenChange, invoice, onDownload }: ViewInvoiceDialogProps) => {
   const { data: detailedInvoice, isLoading } = useInvoice(invoice?.id || "");
+  const companySettings = getCompanySettings();
   const { toast } = useToast();
 
   const formatCurrency = (amount: number) => {
@@ -204,13 +206,13 @@ export const ViewInvoiceDialog = ({ open, onOpenChange, invoice, onDownload }: V
             <div className="p-6 mb-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-800 mb-1">EZAZUL HAQUE</h1>
-                  <p className="text-sm text-gray-600 mb-6">Proprietor of BIO TECH CENTRE</p>
+                  <h1 className="text-2xl font-bold text-gray-800 mb-1">{companySettings.companyName}</h1>
+                  <p className="text-sm text-gray-600 mb-6">{companySettings.companyTagline}</p>
                 </div>
                 <div className="text-right">
                   <h2 className="text-2xl font-bold text-gray-800 mb-2">Invoice</h2>
                   <div className="text-sm text-gray-600 space-y-1">
-                    <div><span className="font-medium">Invoice No:</span> BTC-{detailedInvoice.invoice_number.replace('INV-', '')}/25-26</div>
+                    <div><span className="font-medium">Invoice No:</span> {detailedInvoice.invoice_number}/25-26</div>
                     <div><span className="font-medium">Invoice Date:</span> {formatDate(detailedInvoice.invoice_date)}</div>
                   </div>
                 </div>
@@ -222,11 +224,11 @@ export const ViewInvoiceDialog = ({ open, onOpenChange, invoice, onDownload }: V
               <div>
                 <h3 className="text-lg font-bold text-gray-800 mb-3">BILLED BY</h3>
                 <div className="space-y-1">
-                  <div className="font-bold text-base">Ezazul Haque</div>
-                  <div className="text-sm text-gray-600">Nalhati to Rajgram Road, Vill :- Kaigoria, Post :- Diha, West Bengal, India - 731220</div>
+                  <div className="font-bold text-base">{companySettings.proprietorName}</div>
+                  <div className="text-sm text-gray-600">{companySettings.address}, {companySettings.city}, {companySettings.state}, {companySettings.country} - {companySettings.pincode}</div>
                   <div className="text-sm text-gray-600 space-y-1 mt-2">
-                    <div><span className="font-medium">GSTIN:</span> 19ADOPH4023K1ZD</div>
-                    <div><span className="font-medium">PAN:</span> ADOPH4023K</div>
+                    <div><span className="font-medium">GSTIN:</span> {companySettings.gstin}</div>
+                    <div><span className="font-medium">PAN:</span> {companySettings.pan}</div>
                   </div>
                 </div>
               </div>
@@ -363,23 +365,23 @@ export const ViewInvoiceDialog = ({ open, onOpenChange, invoice, onDownload }: V
               <div className="grid grid-cols-3 gap-x-8 gap-y-2 text-sm">
                 <div>
                   <span className="font-medium text-gray-600">Account Name:</span>
-                  <div className="text-gray-800">Ezazul Haque</div>
+                  <div className="text-gray-800">{companySettings.accountName}</div>
                 </div>
                 <div>
                   <span className="font-medium text-gray-600">Account Number:</span>
-                  <div className="text-gray-800">000000000000</div>
+                  <div className="text-gray-800">{companySettings.accountNumber}</div>
                 </div>
                 <div>
                   <span className="font-medium text-gray-600">Account Type:</span>
-                  <div className="text-gray-800">Current</div>
+                  <div className="text-gray-800">{companySettings.accountType}</div>
                 </div>
                 <div>
                   <span className="font-medium text-gray-600">IFSC:</span>
-                  <div className="text-gray-800">SBIN0008540</div>
+                  <div className="text-gray-800">{companySettings.ifscCode}</div>
                 </div>
                 <div className="col-span-2">
                   <span className="font-medium text-gray-600">Bank:</span>
-                  <div className="text-gray-800">State Bank of India</div>
+                  <div className="text-gray-800">{companySettings.bankName}</div>
                 </div>
               </div>
             </div>
@@ -397,7 +399,7 @@ export const ViewInvoiceDialog = ({ open, onOpenChange, invoice, onDownload }: V
             {/* Footer */}
             <div className="mt-8 text-center">
               <div className="text-gray-800 p-4 bg-[#eff3ff] rounded">
-                <p className="font-semibold text-base">Thank you for business with us!</p>
+                <p className="font-semibold text-base">{companySettings.footerMessage}</p>
               </div>
             </div>
           </div>

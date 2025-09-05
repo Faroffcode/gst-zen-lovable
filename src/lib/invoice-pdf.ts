@@ -1,6 +1,7 @@
 import { Invoice, InvoiceItem } from "@/hooks/useInvoices";
 import { Customer } from "@/hooks/useCustomers";
 import { getInvoiceSettings, formatCurrency, formatDate, processCustomTemplate, InvoiceSettings } from "./template-processor";
+import { getCompanySettings, CompanySettings } from "./company-settings";
 import { useToast } from "@/hooks/use-toast";
 import { sendFileToTelegram } from "@/lib/telegram";
 import jsPDF from 'jspdf';
@@ -123,6 +124,7 @@ const convertHtmlToPdfBlob = async (htmlContent: string): Promise<Blob> => {
 
 // Generate default template
 const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], settings: InvoiceSettings): string => {
+  const companySettings = getCompanySettings();
   const htmlContent = `
     <!DOCTYPE html>
     <html lang="en">
@@ -496,15 +498,15 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
       <div class="invoice-container">
         <div class="header">
           <div class="company-info">
-          <div class="company-name">EZAZUL HAQUE</div>
-          <div class="company-tagline">Proprietor of BIO TECH CENTRE</div>
+          <div class="company-name">${companySettings.companyName}</div>
+          <div class="company-tagline">${companySettings.companyTagline}</div>
               </div>
         <div class="invoice-header">
           <div class="invoice-title">Invoice</div>
           <div class="invoice-details">
             <div class="invoice-detail-row">
               <span class="invoice-label">Invoice No:</span>
-              <span class="invoice-value">BTC-${invoice.invoice_number.replace('INV-', '')}/25-26</span>
+              <span class="invoice-value">${invoice.invoice_number}/25-26</span>
             </div>
             <div class="invoice-detail-row">
               <span class="invoice-label">Invoice Date:</span>
@@ -518,10 +520,10 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
         <div class="billed-from">
           <div class="section-title">Billed By</div>
           <div class="billing-info">
-            <div class="billing-name">Ezazul Haque</div>
-            <div class="billing-address">Nalhati to Rajgram Road, Vill :- Kaigoria, Post :- Diha, West Bengal, India - 731220</div>
-            <div class="gstin">GSTIN: 19ADOPH4023K1ZD</div>
-            <div class="pan">PAN: ADOPH4023K</div>
+            <div class="billing-name">${companySettings.proprietorName}</div>
+            <div class="billing-address">${companySettings.address}, ${companySettings.city}, ${companySettings.state}, ${companySettings.country} - ${companySettings.pincode}</div>
+            <div class="gstin">GSTIN: ${companySettings.gstin}</div>
+            <div class="pan">PAN: ${companySettings.pan}</div>
           </div>
         </div>
 
@@ -639,29 +641,29 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
         <div class="bank-info">
           <div class="bank-row">
             <span class="bank-label">Account Name:</span>
-            <span class="bank-value">Ezazul Haque</span>
+            <span class="bank-value">${companySettings.accountName}</span>
         </div>
           <div class="bank-row">
             <span class="bank-label">Account Number:</span>
-            <span class="bank-value">000000000000</span>
+            <span class="bank-value">${companySettings.accountNumber}</span>
           </div>
           <div class="bank-row">
             <span class="bank-label">IFSC:</span>
-            <span class="bank-value">SBIN0008540</span>
+            <span class="bank-value">${companySettings.ifscCode}</span>
           </div>
           <div class="bank-row">
             <span class="bank-label">Account Type:</span>
-            <span class="bank-value">Current</span>
+            <span class="bank-value">${companySettings.accountType}</span>
           </div>
           <div class="bank-row">
             <span class="bank-label">Bank:</span>
-            <span class="bank-value">State Bank of India</span>
+            <span class="bank-value">${companySettings.bankName}</span>
           </div>
         </div>
       </div>
 
       <div class="footer-message">
-        Thank you for business with us!
+        ${companySettings.footerMessage}
       </div>
       </div>
     </body>
@@ -867,7 +869,7 @@ export const downloadInvoiceHTML = (invoice: Invoice, invoiceItems: InvoiceItem[
         <div style="line-height: 1.8;">
           <div style="display: flex; justify-content: flex-end; gap: 10px;">
             <span style="font-weight: bold; color: #374151;">Invoice No:</span>
-            <span style="color: #1e293b;">BTC-${invoice.invoice_number.replace('INV-', '')}/25-26</span>
+            <span style="color: #1e293b;">${invoice.invoice_number}/25-26</span>
     </div>
           <div style="display: flex; justify-content: flex-end; gap: 10px;">
             <span style="font-weight: bold; color: #374151;">Invoice Date:</span>
@@ -1046,20 +1048,19 @@ export const sendInvoiceToTelegram = async (
     
     // Create filename with BTC format and customer name if available
     let filename: string;
-    const invoiceNumber = invoice.invoice_number.replace('INV-', ''); // Remove INV- prefix
-    const btcNumber = `BTC-${invoiceNumber}`;
+    const invoiceNumber = invoice.invoice_number; // Already in BTC format
     
     if (invoice.customer?.name) {
       // Use existing customer name
       const customerName = invoice.customer.name.replace(/[^a-zA-Z0-9\s]/g, ''); // Keep only alphanumeric and spaces
-      filename = `${btcNumber} ${customerName}.pdf`;
+      filename = `${invoiceNumber} ${customerName}.pdf`;
     } else if (invoice.guest_name) {
       // Use guest customer name
       const guestName = invoice.guest_name.replace(/[^a-zA-Z0-9\s]/g, ''); // Keep only alphanumeric and spaces
-      filename = `${btcNumber} ${guestName}.pdf`;
+      filename = `${invoiceNumber} ${guestName}.pdf`;
     } else {
       // No customer name available
-      filename = `${btcNumber}.pdf`;
+      filename = `${invoiceNumber}.pdf`;
     }
     
     // Send to Telegram as PDF file

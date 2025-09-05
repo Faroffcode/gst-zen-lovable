@@ -37,13 +37,6 @@ export const PurchaseHistory = ({ transactions }: PurchaseHistoryProps) => {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedTransactions = filteredTransactions.slice(startIndex, startIndex + itemsPerPage);
 
-  const formatCurrency = (amount: number) => {
-    return `₹${amount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
-  };
-
-  const calculateLineTotal = (quantity: number, unitCost: number | null) => {
-    return quantity * (unitCost || 0);
-  };
 
   if (transactions.length === 0) {
     return (
@@ -97,16 +90,12 @@ export const PurchaseHistory = ({ transactions }: PurchaseHistoryProps) => {
                 <TableHead>Product</TableHead>
                 <TableHead>SKU</TableHead>
                 <TableHead className="text-right">Quantity</TableHead>
-                <TableHead className="text-right">Unit Cost</TableHead>
-                <TableHead className="text-right">Total</TableHead>
                 <TableHead>Reference</TableHead>
                 <TableHead>Notes</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedTransactions.map((transaction) => {
-                const lineTotal = calculateLineTotal(transaction.quantity_delta, transaction.unit_cost);
-                
                 return (
                   <TableRow key={transaction.id}>
                     <TableCell>
@@ -134,20 +123,6 @@ export const PurchaseHistory = ({ transactions }: PurchaseHistoryProps) => {
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {transaction.product?.unit}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {transaction.unit_cost ? (
-                        <div className="font-medium">
-                          {formatCurrency(transaction.unit_cost)}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="font-medium text-green-600">
-                        {formatCurrency(lineTotal)}
                       </div>
                     </TableCell>
                     <TableCell>

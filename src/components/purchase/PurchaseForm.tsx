@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Search, Package } from "lucide-react";
+import { Plus, Search, Package, X } from "lucide-react";
 import { useProducts, useAddProduct, Product } from "@/hooks/useProducts";
 import { useRecordPurchase } from "@/hooks/useStockLedger";
 import { useCategories } from "@/hooks/useCategories";
@@ -179,7 +179,14 @@ export const PurchaseForm = ({ onSuccess, onCancel }: PurchaseFormProps) => {
                     id="product-search"
                     placeholder="Search by product name or SKU..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      // Clear selected product when user starts typing
+                      if (selectedProduct) {
+                        setSelectedProduct(null);
+                        setValue("product_id", "");
+                      }
+                    }}
                     className="pl-10"
                   />
                 </div>
@@ -194,7 +201,7 @@ export const PurchaseForm = ({ onSuccess, onCancel }: PurchaseFormProps) => {
                         className="p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
                         onClick={() => {
                           setSelectedProduct(product);
-                          setSearchQuery(product.name);
+                          setSearchQuery("");
                         }}
                       >
                         <div className="font-medium">{product.name}</div>
@@ -213,10 +220,26 @@ export const PurchaseForm = ({ onSuccess, onCancel }: PurchaseFormProps) => {
 
               {selectedProduct && (
                 <div className="p-4 bg-muted rounded-lg">
-                  <h4 className="font-medium">{selectedProduct.name}</h4>
-                  <p className="text-sm text-muted-foreground">
-                    SKU: {selectedProduct.sku} | Current Stock: {selectedProduct.current_stock} {selectedProduct.unit}
-                  </p>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-medium">{selectedProduct.name}</h4>
+                      <p className="text-sm text-muted-foreground">
+                        SKU: {selectedProduct.sku} | Current Stock: {selectedProduct.current_stock} {selectedProduct.unit}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedProduct(null);
+                        setSearchQuery("");
+                        setValue("product_id", "");
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
@@ -254,7 +277,7 @@ export const PurchaseForm = ({ onSuccess, onCancel }: PurchaseFormProps) => {
                     setShowCategorySuggestions(true);
                   }}
                   onFocus={() => setShowCategorySuggestions(true)}
-                  onBlur={() => setTimeout(() => setShowCategorySuggestions(false), 200)}
+                  onBlur={() => setTimeout(() => setShowCategorySuggestions(false), 150)}
                   placeholder={categoriesLoading ? "Loading categories..." : "Type or select category"}
                   disabled={categoriesLoading}
                 />
@@ -264,7 +287,8 @@ export const PurchaseForm = ({ onSuccess, onCancel }: PurchaseFormProps) => {
                       <div
                         key={category.id}
                         className="p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
-                        onClick={() => {
+                        onMouseDown={(e) => {
+                          e.preventDefault();
                           setCategoryQuery(category.name);
                           setValue("category", category.name);
                           setShowCategorySuggestions(false);
@@ -303,7 +327,7 @@ export const PurchaseForm = ({ onSuccess, onCancel }: PurchaseFormProps) => {
                     setShowUnitSuggestions(true);
                   }}
                   onFocus={() => setShowUnitSuggestions(true)}
-                  onBlur={() => setTimeout(() => setShowUnitSuggestions(false), 200)}
+                  onBlur={() => setTimeout(() => setShowUnitSuggestions(false), 150)}
                   placeholder={unitsLoading ? "Loading units..." : "Type or select unit"}
                   disabled={unitsLoading}
                 />
@@ -313,7 +337,8 @@ export const PurchaseForm = ({ onSuccess, onCancel }: PurchaseFormProps) => {
                       <div
                         key={unit.id}
                         className="p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
-                        onClick={() => {
+                        onMouseDown={(e) => {
+                          e.preventDefault();
                           setUnitQuery(unit.abbreviation);
                           setValue("unit", unit.abbreviation);
                           setShowUnitSuggestions(false);

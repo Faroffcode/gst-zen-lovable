@@ -78,19 +78,19 @@ export const StockRegisterDialog = ({ open, onOpenChange, product }: StockRegist
 
   const formatInvoiceNumber = (invoiceNumber: string) => {
     // If it's already in BTC format, return as is
-    if (invoiceNumber.startsWith('BTC-')) {
+    if (invoiceNumber.startsWith('BTC')) {
       return invoiceNumber;
     }
     
     // If it's in INV- format, convert to BTC format
     if (invoiceNumber.startsWith('INV-')) {
       const number = invoiceNumber.replace('INV-', '');
-      return `BTC-${number}`;
+      return `BTC${number.padStart(3, '0')}`;
     }
     
-    // If it's a raw number, add BTC- prefix
+    // If it's a raw number, add BTC prefix
     if (/^\d+$/.test(invoiceNumber)) {
-      return `BTC-${invoiceNumber}`;
+      return `BTC${invoiceNumber.padStart(3, '0')}`;
     }
     
     // For any other format, return as is

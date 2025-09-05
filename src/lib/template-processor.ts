@@ -1,4 +1,5 @@
 import { Invoice, InvoiceItem } from "@/hooks/useInvoices";
+import { getCompanySettings } from "./company-settings";
 
 export interface InvoiceSettings {
   companyName: string;
@@ -116,9 +117,10 @@ export const replacePlaceholders = (
   invoiceItems: InvoiceItem[],
   settings: InvoiceSettings
 ): string => {
+  const companySettings = getCompanySettings();
   const placeholders = {
-    '{{COMPANY_NAME}}': settings.companyName,
-    '{{COMPANY_TAGLINE}}': settings.companyTagline,
+    '{{COMPANY_NAME}}': companySettings.companyName,
+    '{{COMPANY_TAGLINE}}': companySettings.companyTagline,
     '{{LOGO_TEXT}}': settings.logoText,
     '{{INVOICE_NUMBER}}': invoice.invoice_number,
     '{{INVOICE_DATE}}': formatDate(invoice.invoice_date, settings),
@@ -133,8 +135,27 @@ export const replacePlaceholders = (
     '{{SUBTOTAL}}': formatCurrency(invoice.subtotal, settings),
     '{{TAX_AMOUNT}}': formatCurrency(invoice.tax_amount, settings),
     '{{TOTAL_AMOUNT}}': formatCurrency(invoice.total_amount, settings),
-    '{{FOOTER_TEXT}}': settings.footerText,
+    '{{FOOTER_TEXT}}': companySettings.footerMessage,
     '{{PRIMARY_COLOR}}': settings.primaryColor,
+    // Company details placeholders
+    '{{PROPRIETOR_NAME}}': companySettings.proprietorName,
+    '{{COMPANY_ADDRESS}}': companySettings.address,
+    '{{COMPANY_CITY}}': companySettings.city,
+    '{{COMPANY_STATE}}': companySettings.state,
+    '{{COMPANY_PINCODE}}': companySettings.pincode,
+    '{{COMPANY_COUNTRY}}': companySettings.country,
+    '{{COMPANY_PHONE}}': companySettings.phone,
+    '{{COMPANY_EMAIL}}': companySettings.email,
+    '{{COMPANY_WEBSITE}}': companySettings.website,
+    '{{COMPANY_GSTIN}}': companySettings.gstin,
+    '{{COMPANY_PAN}}': companySettings.pan,
+    '{{BANK_NAME}}': companySettings.bankName,
+    '{{ACCOUNT_NAME}}': companySettings.accountName,
+    '{{ACCOUNT_NUMBER}}': companySettings.accountNumber,
+    '{{IFSC_CODE}}': companySettings.ifscCode,
+    '{{ACCOUNT_TYPE}}': companySettings.accountType,
+    '{{BRANCH_NAME}}': companySettings.branchName,
+    '{{CURRENCY_SYMBOL}}': companySettings.currencySymbol,
   };
 
   // Generate items table

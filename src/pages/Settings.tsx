@@ -1,8 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Database, Package } from "lucide-react";
+import { Database, Package, Building2 } from "lucide-react";
 import StorageSettingsDialog from "@/components/StorageSettingsDialog";
 import ManageUnitsDialog from "@/components/ManageUnitsDialog";
+import CompanySettingsDialog from "@/components/CompanySettingsDialog";
 
 const Settings = () => {
   return (
@@ -17,6 +18,21 @@ const Settings = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <Card className="hover:shadow-elegant transition-all duration-300">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              Company Settings
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground mb-4">
+              Update company information, address, and bank details for invoices
+            </p>
+            <CompanySettingsDialog />
+          </CardContent>
+        </Card>
+
         <Card className="hover:shadow-elegant transition-all duration-300">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

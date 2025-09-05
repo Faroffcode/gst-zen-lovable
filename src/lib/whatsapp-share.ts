@@ -8,10 +8,9 @@ export const shareInvoiceToWhatsApp = async (invoice: Invoice, invoiceItems: Inv
     const pdfBlob = await generateInvoicePDFBlob(invoice, invoiceItems);
     
     // Create filename
-    const invoiceNumber = invoice.invoice_number.replace('INV-', '');
-    const btcNumber = `BTC-${invoiceNumber}`;
+    const invoiceNumber = invoice.invoice_number; // Already in BTC format
     const customerName = invoice.customer?.name || invoice.guest_name || 'Customer';
-    const filename = `${btcNumber} ${customerName}.pdf`;
+    const filename = `${invoiceNumber} ${customerName}.pdf`;
     
     // Create a File object from the blob
     const pdfFile = new File([pdfBlob], filename, { type: 'application/pdf' });
@@ -69,8 +68,7 @@ export const shareInvoiceToWhatsApp = async (invoice: Invoice, invoiceItems: Inv
 // Alternative method: Share invoice details as text (without PDF)
 export const shareInvoiceDetailsToWhatsApp = (invoice: Invoice, invoiceItems: InvoiceItem[]) => {
   try {
-    const invoiceNumber = invoice.invoice_number.replace('INV-', '');
-    const btcNumber = `BTC-${invoiceNumber}`;
+    const invoiceNumber = invoice.invoice_number; // Already in BTC format
     const customerName = invoice.customer?.name || invoice.guest_name || 'Customer';
     
     // Calculate totals
@@ -90,7 +88,7 @@ export const shareInvoiceDetailsToWhatsApp = (invoice: Invoice, invoiceItems: In
     });
     
     // Create detailed message
-    const message = `📄 *INVOICE ${btcNumber}*\n\n` +
+    const message = `📄 *INVOICE ${invoiceNumber}*\n\n` +
       `*From:* EZAZUL HAQUE\n` +
       `Proprietor of BIO TECH CENTRE\n` +
       `GSTIN: 19ADOPH4023K1ZD\n\n` +

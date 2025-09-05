@@ -7,17 +7,12 @@ import { useStockTransactions } from "@/hooks/useStockLedger";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PurchaseForm } from "@/components/purchase/PurchaseForm";
 import { PurchaseHistory } from "@/components/purchase/PurchaseHistory";
-import { PurchaseStats } from "@/components/purchase/PurchaseStats";
 
 const Purchase = () => {
   const [activeTab, setActiveTab] = useState("purchase-items");
   const [showPurchaseForm, setShowPurchaseForm] = useState(false);
   
   const { data: stockTransactions, isLoading } = useStockTransactions();
-  
-  const purchaseTransactions = stockTransactions?.filter(
-    transaction => transaction.transaction_type === "purchase"
-  ) || [];
 
   if (isLoading) {
     return (
@@ -28,11 +23,6 @@ const Purchase = () => {
             <Skeleton className="h-4 w-96" />
           </div>
           <Skeleton className="h-10 w-32" />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[...Array(3)].map((_, i) => (
-            <Skeleton key={i} className="h-24" />
-          ))}
         </div>
         <Skeleton className="h-64" />
       </div>
@@ -55,8 +45,6 @@ const Purchase = () => {
         </Button>
       </div>
 
-      {/* Stats Cards */}
-      <PurchaseStats transactions={purchaseTransactions} />
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -97,7 +85,9 @@ const Purchase = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <PurchaseHistory transactions={purchaseTransactions} />
+              <PurchaseHistory transactions={stockTransactions?.filter(
+                transaction => transaction.transaction_type === "purchase"
+              ) || []} />
             </CardContent>
           </Card>
         </TabsContent>

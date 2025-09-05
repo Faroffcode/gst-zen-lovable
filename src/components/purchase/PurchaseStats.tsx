@@ -10,11 +10,7 @@ export const PurchaseStats = ({ transactions }: PurchaseStatsProps) => {
   // Calculate stats from purchase transactions
   const totalPurchases = transactions.length;
   
-  const totalValue = transactions.reduce((sum, transaction) => {
-    const cost = transaction.unit_cost || 0;
-    const quantity = transaction.quantity_delta;
-    return sum + (cost * quantity);
-  }, 0);
+  const totalValue = 0; // Unit cost removed, no value calculation
 
   const totalQuantity = transactions.reduce((sum, transaction) => {
     return sum + transaction.quantity_delta;
@@ -30,11 +26,7 @@ export const PurchaseStats = ({ transactions }: PurchaseStatsProps) => {
            transactionDate.getFullYear() === currentYear;
   });
 
-  const thisMonthValue = thisMonthPurchases.reduce((sum, transaction) => {
-    const cost = transaction.unit_cost || 0;
-    const quantity = transaction.quantity_delta;
-    return sum + (cost * quantity);
-  }, 0);
+  const thisMonthValue = 0; // Unit cost removed, no value calculation
 
   const stats = [
     {
@@ -46,10 +38,10 @@ export const PurchaseStats = ({ transactions }: PurchaseStatsProps) => {
       bgColor: "bg-blue-50",
     },
     {
-      title: "Total Value",
-      value: `₹${totalValue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`,
-      icon: DollarSign,
-      description: "Total purchase value",
+      title: "This Month",
+      value: thisMonthPurchases.length.toString(),
+      icon: TrendingUp,
+      description: "Purchases this month",
       color: "text-green-600",
       bgColor: "bg-green-50",
     },
@@ -62,10 +54,10 @@ export const PurchaseStats = ({ transactions }: PurchaseStatsProps) => {
       bgColor: "bg-purple-50",
     },
     {
-      title: "This Month",
-      value: `₹${thisMonthValue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`,
-      icon: TrendingUp,
-      description: `${thisMonthPurchases.length} purchases`,
+      title: "This Month Qty",
+      value: thisMonthPurchases.reduce((sum, transaction) => sum + transaction.quantity_delta, 0).toLocaleString('en-IN'),
+      icon: Package,
+      description: "Quantity this month",
       color: "text-orange-600",
       bgColor: "bg-orange-50",
     },

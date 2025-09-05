@@ -6,22 +6,15 @@ import { ProductSearchInput } from "./ProductSearchInput";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, User, UserPlus } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Trash2, User } from "lucide-react";
 import { useCreateInvoice } from "@/hooks/useInvoices";
 import { useCustomers } from "@/hooks/useCustomers";
 import { useProducts } from "@/hooks/useProducts";
 
 export const CreateInvoiceDialog = () => {
   const [open, setOpen] = useState(false);
-  const [customerType, setCustomerType] = useState<"existing" | "guest">("existing");
   const [formData, setFormData] = useState({
     customer_id: "",
-    guest_name: "",
-    guest_email: "",
-    guest_phone: "",
-    guest_address: "",
-    guest_gstin: "",
     invoice_date: new Date().toISOString().split('T')[0],
     notes: "",
   });
@@ -104,32 +97,17 @@ export const CreateInvoiceDialog = () => {
     }
 
     const invoiceData = {
+      customer_id: formData.customer_id,
       invoice_date: formData.invoice_date,
       notes: formData.notes || undefined,
       items: validItems,
-      ...(customerType === "existing" 
-        ? { customer_id: formData.customer_id }
-        : {
-            guest_name: formData.guest_name,
-            guest_email: formData.guest_email || undefined,
-            guest_phone: formData.guest_phone || undefined,
-            guest_address: formData.guest_address || undefined,
-            guest_gstin: formData.guest_gstin || undefined,
-          }
-      )
     };
 
     createInvoice.mutate(invoiceData, {
       onSuccess: () => {
         setOpen(false);
-        setCustomerType("existing");
         setFormData({
           customer_id: "",
-          guest_name: "",
-          guest_email: "",
-          guest_phone: "",
-          guest_address: "",
-          guest_gstin: "",
           invoice_date: new Date().toISOString().split('T')[0],
           notes: "",
         });
@@ -158,152 +136,48 @@ export const CreateInvoiceDialog = () => {
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Customer Selection */}
-          <Tabs value={customerType} onValueChange={(value) => setCustomerType(value as "existing" | "guest")}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger 
-                value="existing" 
-                className="flex items-center gap-2 data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700 data-[state=active]:border-blue-300"
-              >
-                <User className="h-4 w-4" />
-                <span className="hidden sm:inline">Existing Customer</span>
-                <span className="sm:hidden">Existing</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="guest" 
-                className="flex items-center gap-2 data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700 data-[state=active]:border-blue-300"
-              >
-                <UserPlus className="h-4 w-4" />
-                <span className="hidden sm:inline">Guest Customer</span>
-                <span className="sm:hidden">Guest</span>
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="existing" className="space-y-4">
-              <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 transition-all duration-300">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-                    <User className="h-4 w-4 text-blue-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-blue-800">Existing Customer</h3>
-                    <p className="text-sm text-blue-600">Select from registered customers</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="customer_id">Customer *</Label>
-                  <Select
-                    value={formData.customer_id}
-                    onValueChange={(value) => setFormData({ ...formData, customer_id: value })}
-                    required={customerType === "existing"}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select customer" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {customers.map((customer) => (
-                        <SelectItem key={customer.id} value={customer.id}>
-                          {customer.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="invoice_date">Invoice Date *</Label>
-                  <Input
-                    id="invoice_date"
-                    type="date"
-                    value={formData.invoice_date}
-                    onChange={(e) => setFormData({ ...formData, invoice_date: e.target.value })}
-                    required
-                  />
-                </div>
+          <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 transition-all duration-300">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
+                <User className="h-4 w-4 text-blue-600" />
               </div>
+              <div>
+                <h3 className="font-medium text-blue-800">Customer Selection</h3>
+                <p className="text-sm text-blue-600">Select from registered customers</p>
               </div>
-            </TabsContent>
-            
-            <TabsContent value="guest" className="space-y-4">
-              <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 transition-all duration-300">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-                    <UserPlus className="h-4 w-4 text-blue-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-blue-800">Guest Customer</h3>
-                    <p className="text-sm text-blue-600">Add new customer details</p>
-                  </div>
-                </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="guest_name">Customer Name *</Label>
-                  <Input
-                    id="guest_name"
-                    value={formData.guest_name}
-                    onChange={(e) => setFormData({ ...formData, guest_name: e.target.value })}
-                    placeholder="Enter customer name"
-                    required={customerType === "guest"}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="invoice_date_guest">Invoice Date *</Label>
-                  <Input
-                    id="invoice_date_guest"
-                    type="date"
-                    value={formData.invoice_date}
-                    onChange={(e) => setFormData({ ...formData, invoice_date: e.target.value })}
-                    required
-                  />
-                </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="customer_id">Customer *</Label>
+                <Select
+                  value={formData.customer_id}
+                  onValueChange={(value) => setFormData({ ...formData, customer_id: value })}
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select customer" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {customers.map((customer) => (
+                      <SelectItem key={customer.id} value={customer.id}>
+                        {customer.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="guest_email">Email</Label>
-                  <Input
-                    id="guest_email"
-                    type="email"
-                    value={formData.guest_email}
-                    onChange={(e) => setFormData({ ...formData, guest_email: e.target.value })}
-                    placeholder="customer@example.com"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="guest_phone">Phone</Label>
-                  <Input
-                    id="guest_phone"
-                    value={formData.guest_phone}
-                    onChange={(e) => setFormData({ ...formData, guest_phone: e.target.value })}
-                    placeholder="+91-9876543210"
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="invoice_date">Invoice Date *</Label>
+                <Input
+                  id="invoice_date"
+                  type="date"
+                  value={formData.invoice_date}
+                  onChange={(e) => setFormData({ ...formData, invoice_date: e.target.value })}
+                  required
+                />
               </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="guest_address">Address</Label>
-                  <Textarea
-                    id="guest_address"
-                    value={formData.guest_address}
-                    onChange={(e) => setFormData({ ...formData, guest_address: e.target.value })}
-                    placeholder="Customer address"
-                    rows={2}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="guest_gstin">GSTIN</Label>
-                  <Input
-                    id="guest_gstin"
-                    value={formData.guest_gstin}
-                    onChange={(e) => setFormData({ ...formData, guest_gstin: e.target.value.toUpperCase() })}
-                    placeholder="27ABCDE1234F1Z5"
-                    maxLength={15}
-                  />
-                </div>
-              </div>
-              </div>
-            </TabsContent>
-          </Tabs>
+            </div>
+          </div>
 
           {/* Additional Details */}
           <div className="grid grid-cols-1 gap-4">

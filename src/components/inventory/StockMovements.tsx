@@ -199,11 +199,6 @@ const StockMovements = () => {
                 }`}>
                   {transaction.quantity_delta > 0 ? '+' : ''}{transaction.quantity_delta} {transaction.product?.unit || 'units'}
                 </div>
-                {transaction.unit_cost && (
-                  <div className="text-xs text-gray-500">
-                    {formatCurrency(transaction.unit_cost)}/unit
-                  </div>
-                )}
               </div>
             </div>
           ))}
