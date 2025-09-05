@@ -61,7 +61,7 @@ interface StorageSettings {
 const StorageSettingsDialog = () => {
   const [open, setOpen] = useState(false);
   const [settings, setSettings] = useState<StorageSettings>({
-    enableLocalBackup: true,
+    enableLocalBackup: false,
     backupLocation: "C:\\Users\\User\\Documents\\GSTZen\\Backups",
     autoBackupFrequency: "daily",
     maxBackupRetention: "30",

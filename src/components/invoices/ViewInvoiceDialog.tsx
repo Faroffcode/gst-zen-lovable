@@ -157,13 +157,13 @@ export const ViewInvoiceDialog = ({ open, onOpenChange, invoice, onDownload }: V
             <div className="p-6 mb-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-800 mb-1">BIO TECH CENTRE</h1>
-                  <p className="text-sm text-gray-600 mb-6">Professional</p>
+                  <h1 className="text-2xl font-bold text-gray-800 mb-1">EZAZUL HAQUE</h1>
+                  <p className="text-sm text-gray-600 mb-6">Proprietor of BIO TECH CENTRE</p>
                 </div>
                 <div className="text-right">
                   <h2 className="text-2xl font-bold text-gray-800 mb-2">Invoice</h2>
                   <div className="text-sm text-gray-600 space-y-1">
-                    <div><span className="font-medium">Invoice No #:</span> {detailedInvoice.invoice_number}</div>
+                    <div><span className="font-medium">Invoice No:</span> BTC-{detailedInvoice.invoice_number.replace('INV-', '')}/25-26</div>
                     <div><span className="font-medium">Invoice Date:</span> {formatDate(detailedInvoice.invoice_date)}</div>
                   </div>
                 </div>
@@ -173,11 +173,25 @@ export const ViewInvoiceDialog = ({ open, onOpenChange, invoice, onDownload }: V
             {/* Billing Information */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
               <div>
+                <h3 className="text-lg font-bold text-gray-800 mb-3">BILLED BY</h3>
+                <div className="space-y-1">
+                  <div className="font-bold text-base">Ezazul Haque</div>
+                  <div className="text-sm text-gray-600">Nalhati to Rajgram Road, Vill :- Kaigoria, Post :- Diha, West Bengal, India - 731220</div>
+                  <div className="text-sm text-gray-600 space-y-1 mt-2">
+                    <div><span className="font-medium">GSTIN:</span> 19ADOPH4023K1ZD</div>
+                    <div><span className="font-medium">PAN:</span> ADOPH4023K</div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
                 <h3 className="text-lg font-bold text-gray-800 mb-3">BILLED TO</h3>
                 <div className="space-y-1">
-                  <div className="font-bold text-base">
-                    {detailedInvoice.customer?.name || detailedInvoice.guest_name || "Guest Customer"}
-                  </div>
+                  {(detailedInvoice.customer?.name || detailedInvoice.guest_name) && (
+                    <div className="font-bold text-base">
+                      {detailedInvoice.customer?.name || detailedInvoice.guest_name}
+                    </div>
+                  )}
                   {((detailedInvoice.customer as Customer)?.phone || detailedInvoice.guest_phone) && (
                     <div className="text-sm text-gray-600">
                       Phone: {(detailedInvoice.customer as Customer)?.phone || detailedInvoice.guest_phone}
@@ -193,18 +207,6 @@ export const ViewInvoiceDialog = ({ open, onOpenChange, invoice, onDownload }: V
                       {[(detailedInvoice.customer as Customer)?.city, (detailedInvoice.customer as Customer)?.state, (detailedInvoice.customer as Customer)?.pincode].filter(Boolean).join(', ')}
                     </div>
                   )}
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-lg font-bold text-gray-800 mb-3">BILLED BY</h3>
-                <div className="space-y-1">
-                  <div className="font-bold text-base">Ezazul Haque</div>
-                  <div className="text-sm text-gray-600">Nalhati to Rajgram Road, Vill :- Kaigoria, Post :- Diha, West Bengal, India - 731220</div>
-                  <div className="text-sm text-gray-600 space-y-1 mt-2">
-                    <div><span className="font-medium">GSTIN:</span> 19ADOPH4023K1ZD</div>
-                    <div><span className="font-medium">PAN:</span> ADOPH4023K</div>
-                  </div>
                 </div>
               </div>
             </div>

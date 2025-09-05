@@ -58,9 +58,7 @@ export const InventoryTable = ({ products, onEdit, onDelete, onView, onStockRegi
             <TableHead>Product Name</TableHead>
             <TableHead>Category</TableHead>
             <TableHead className="text-right">Current Stock</TableHead>
-            <TableHead className="text-right">Min Stock</TableHead>
             <TableHead className="text-right">Unit Price</TableHead>
-            <TableHead className="text-right">Stock Value</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -92,13 +90,7 @@ export const InventoryTable = ({ products, onEdit, onDelete, onView, onStockRegi
                 {product.current_stock} {product.unit}
               </TableCell>
               <TableCell className="text-right">
-                {product.min_stock} {product.unit}
-              </TableCell>
-              <TableCell className="text-right">
                 {formatCurrency(product.unit_price)}
-              </TableCell>
-              <TableCell className="text-right">
-                {formatCurrency(product.current_stock * product.unit_price)}
               </TableCell>
               <TableCell>{getStockStatus(product)}</TableCell>
               <TableCell className="text-right">

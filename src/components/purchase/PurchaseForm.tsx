@@ -20,7 +20,6 @@ interface PurchaseFormData {
   unit: string;
   tax_rate: number;
   quantity: number;
-  unit_cost: number;
   reference_no: string;
   notes: string;
   is_new_product: boolean;
@@ -58,7 +57,6 @@ export const PurchaseForm = ({ onSuccess, onCancel }: PurchaseFormProps) => {
 
   const watchedProductId = watch("product_id");
   const watchedQuantity = watch("quantity");
-  const watchedUnitCost = watch("unit_cost");
 
   // Filter products based on search query
   const filteredProducts = products.filter(product =>
@@ -91,7 +89,7 @@ export const PurchaseForm = ({ onSuccess, onCancel }: PurchaseFormProps) => {
           category: data.category,
           hsn_code: data.hsn_code || null,
           unit: data.unit,
-          unit_price: data.unit_cost, // Use purchase cost as initial unit price
+          unit_price: 0, // Set initial unit price to 0
           tax_rate: data.tax_rate,
           current_stock: 0, // Will be updated by the purchase transaction
           min_stock: 10,
@@ -104,7 +102,7 @@ export const PurchaseForm = ({ onSuccess, onCancel }: PurchaseFormProps) => {
       await recordPurchase.mutateAsync({
         product_id: productId,
         quantity_delta: data.quantity,
-        unit_cost: data.unit_cost,
+        unit_cost: 0, // Set unit cost to 0
         reference_no: data.reference_no || undefined,
         notes: data.notes || undefined,
       });
@@ -119,7 +117,7 @@ export const PurchaseForm = ({ onSuccess, onCancel }: PurchaseFormProps) => {
     }
   };
 
-  const totalCost = (watchedQuantity || 0) * (watchedUnitCost || 0);
+  // Total cost calculation removed since unit cost is not available
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -315,22 +313,6 @@ export const PurchaseForm = ({ onSuccess, onCancel }: PurchaseFormProps) => {
               )}
             </div>
 
-            <div>
-              <Label htmlFor="unit_cost">Unit Cost (₹) *</Label>
-              <Input
-                id="unit_cost"
-                type="number"
-                step="0.01"
-                {...register("unit_cost", { 
-                  required: "Unit cost is required",
-                  min: { value: 0, message: "Unit cost must be non-negative" }
-                })}
-                placeholder="Enter unit cost"
-              />
-              {errors.unit_cost && (
-                <p className="text-sm text-destructive mt-1">{errors.unit_cost.message}</p>
-              )}
-            </div>
 
             <div>
               <Label htmlFor="reference_no">Reference Number</Label>
@@ -342,9 +324,9 @@ export const PurchaseForm = ({ onSuccess, onCancel }: PurchaseFormProps) => {
             </div>
 
             <div>
-              <Label>Total Cost</Label>
+              <Label>Quantity Added</Label>
               <div className="text-2xl font-bold text-green-600">
-                ₹{totalCost.toFixed(2)}
+                {watchedQuantity || 0} {selectedProduct?.unit || 'units'}
               </div>
             </div>
           </div>

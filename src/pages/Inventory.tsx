@@ -1,12 +1,11 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Search, Filter, Download, Package, X, Tag } from "lucide-react";
+import { Search, Filter, Download, Package, X, Tag, ArrowUpDown, AlertTriangle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useProducts, useProductsByCategory, Product } from "@/hooks/useProducts";
-import { InventoryStats } from "@/components/inventory/InventoryStats";
 import { CategoryTabs } from "@/components/inventory/CategoryTabs";
 import { InventoryTable } from "@/components/inventory/InventoryTable";
 import { AddProductDialog } from "@/components/inventory/AddProductDialog";
@@ -15,6 +14,8 @@ import { ViewProductDialog } from "@/components/inventory/ViewProductDialog";
 import { DeleteConfirmDialog } from "@/components/inventory/DeleteConfirmDialog";
 import { StockRegisterDialog } from "@/components/inventory/StockRegisterDialog";
 import { CategoryManagementDialog } from "@/components/inventory/CategoryManagementDialog";
+import StockMovements from "@/components/inventory/StockMovements";
+import StockAlerts from "@/components/inventory/StockAlerts";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
@@ -24,8 +25,22 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 const Inventory = () => {
   // State for navigation and search
@@ -46,6 +61,10 @@ const Inventory = () => {
   const [taxRateFilter, setTaxRateFilter] = useState<"all" | "5" | "12" | "18" | "28">("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
   const [stockLevel, setStockLevel] = useState<"all" | "low" | "out" | "normal">("all");
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20); // Show 20 products per page
 
   const { data: allProducts = [], isLoading } = useProducts();
   const { data: filteredProducts = [] } = useProductsByCategory(selectedCategory);
@@ -125,6 +144,17 @@ const Inventory = () => {
     return filtered;
   }, [filteredProducts, searchQuery, stockRange, priceRange, taxRateFilter, statusFilter, stockLevel]);
 
+  // Pagination logic
+  const totalPages = Math.ceil(searchFilteredProducts.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedProducts = searchFilteredProducts.slice(startIndex, endIndex);
+
+  // Reset to first page when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedCategory, stockRange, priceRange, taxRateFilter, statusFilter, stockLevel]);
+
   // Check if any filters are active
   const hasActiveFilters = useMemo(() => {
     return stockRange.min || stockRange.max || priceRange.min || priceRange.max || 
@@ -179,40 +209,60 @@ const Inventory = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <TooltipProvider>
+      <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">Inventory Management</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage your agricultural products, stock levels, and pricing.
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+        <div className="flex-1">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Inventory Management</h1>
+          <p className="text-muted-foreground text-base leading-relaxed">
+            Manage your agricultural products, stock levels, and pricing efficiently.
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-          <Select defaultValue="all">
-            <SelectTrigger className="w-full sm:w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline" className="w-full sm:w-auto">
-            <Download className="h-4 w-4 mr-2" />
-            <span className="hidden sm:inline">Export Report</span>
-            <span className="sm:hidden">Export</span>
-          </Button>
-          <Button 
-            variant="outline" 
-            className="w-full sm:w-auto"
-            onClick={() => setShowCategoryManagement(true)}
-          >
-            <Tag className="h-4 w-4 mr-2" />
-            <span className="hidden sm:inline">Manage Categories</span>
-            <span className="sm:hidden">Categories</span>
-          </Button>
+        <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="status-filter" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+              Status:
+            </Label>
+            <Select defaultValue="all">
+              <SelectTrigger className="w-full sm:w-36">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Products</SelectItem>
+                <SelectItem value="active">Active Only</SelectItem>
+                <SelectItem value="inactive">Inactive Only</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" className="w-full sm:w-auto flex items-center justify-center gap-2">
+                <Download className="h-4 w-4" />
+                <span className="hidden sm:inline">Export Report</span>
+                <span className="sm:hidden">Export</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Export inventory data to PDF or Excel</p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="outline" 
+                className="w-full sm:w-auto flex items-center justify-center gap-2"
+                onClick={() => setShowCategoryManagement(true)}
+              >
+                <Tag className="h-4 w-4" />
+                <span className="hidden sm:inline">Manage Categories</span>
+                <span className="sm:hidden">Categories</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Add, edit, or delete product categories</p>
+            </TooltipContent>
+          </Tooltip>
           <AddProductDialog />
         </div>
       </div>
@@ -224,19 +274,31 @@ const Inventory = () => {
         onCategoryChange={setSelectedCategory}
       />
 
-      {/* Stats Cards */}
-      <InventoryStats products={searchFilteredProducts} />
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <TabsList>
-            <TabsTrigger value="current-stock">Current Stock</TabsTrigger>
-            <TabsTrigger value="stock-movements">Stock Movements</TabsTrigger>
-            <TabsTrigger value="stock-alerts">Stock Alerts</TabsTrigger>
-          </TabsList>
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+          <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
+            <TabsList className="grid w-full sm:w-auto grid-cols-3">
+              <TabsTrigger value="current-stock" className="flex items-center gap-2">
+                <Package className="h-4 w-4" />
+                <span className="hidden sm:inline">Current Stock</span>
+                <span className="sm:hidden">Stock</span>
+              </TabsTrigger>
+              <TabsTrigger value="stock-movements" className="flex items-center gap-2">
+                <ArrowUpDown className="h-4 w-4" />
+                <span className="hidden sm:inline">Stock Movements</span>
+                <span className="sm:hidden">Movements</span>
+              </TabsTrigger>
+              <TabsTrigger value="stock-alerts" className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4" />
+                <span className="hidden sm:inline">Stock Alerts</span>
+                <span className="sm:hidden">Alerts</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-          <div className="flex gap-4 items-center w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row gap-4 items-center w-full lg:w-auto">
             <div className="relative flex-1 sm:flex-none sm:w-80">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -248,18 +310,25 @@ const Inventory = () => {
             </div>
             <Dialog open={showFilters} onOpenChange={setShowFilters}>
               <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="relative">
-                  <Filter className="h-4 w-4 mr-2" />
-                  Filters
-                  {hasActiveFilters && (
-                    <Badge 
-                      variant="secondary" 
-                      className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-purple-100 text-purple-700"
-                    >
-                      !
-                    </Badge>
-                  )}
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="sm" className="relative flex items-center gap-2">
+                      <Filter className="h-4 w-4" />
+                      <span>Filters</span>
+                      {hasActiveFilters && (
+                        <Badge 
+                          variant="secondary" 
+                          className="h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-purple-100 text-purple-700"
+                        >
+                          !
+                        </Badge>
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Filter products by stock level, price, tax rate, and status</p>
+                  </TooltipContent>
+                </Tooltip>
               </DialogTrigger>
               <DialogContent className="max-w-md">
                 <DialogHeader>
@@ -477,59 +546,86 @@ const Inventory = () => {
           </Card>
         )}
 
-        <TabsContent value="current-stock" className="space-y-4">
+        <TabsContent value="current-stock" className="space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <Package className="h-5 w-5" />
-                  Current Inventory
+                  <Package className="h-5 w-5 text-blue-600" />
+                  <span className="text-xl font-semibold">Current Inventory</span>
                 </div>
-                <div className="text-sm font-normal text-muted-foreground">
+                <div className="text-sm font-medium text-muted-foreground bg-gray-100 px-3 py-1 rounded-full">
                   {searchFilteredProducts.length} of {filteredProducts.length} products
                 </div>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <InventoryTable
-                products={searchFilteredProducts}
+                products={paginatedProducts}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 onView={handleView}
                 onStockRegister={handleStockRegister}
               />
+              
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="mt-8 pt-6 border-t border-gray-200">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="text-sm text-muted-foreground bg-gray-50 px-3 py-2 rounded-lg">
+                      Showing <span className="font-semibold text-gray-900">{startIndex + 1}</span> to <span className="font-semibold text-gray-900">{Math.min(endIndex, searchFilteredProducts.length)}</span> of <span className="font-semibold text-gray-900">{searchFilteredProducts.length}</span> products
+                    </div>
+                    <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious 
+                          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                          className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
+                      </PaginationItem>
+                      
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        const pageNumber = i + 1;
+                        return (
+                          <PaginationItem key={pageNumber}>
+                            <PaginationLink
+                              onClick={() => setCurrentPage(pageNumber)}
+                              isActive={currentPage === pageNumber}
+                              className="cursor-pointer"
+                            >
+                              {pageNumber}
+                            </PaginationLink>
+                          </PaginationItem>
+                        );
+                      })}
+                      
+                      {totalPages > 5 && (
+                        <PaginationItem>
+                          <span className="px-3 py-2 text-sm text-muted-foreground">...</span>
+                        </PaginationItem>
+                      )}
+                      
+                      <PaginationItem>
+                        <PaginationNext 
+                          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                          className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                    </Pagination>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="stock-movements" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Stock Movements</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-12 text-muted-foreground">
-                <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p className="text-lg font-medium mb-2">Stock movements feature coming soon</p>
-                <p>Track all stock transactions and movements here.</p>
-              </div>
-            </CardContent>
-          </Card>
+        <TabsContent value="stock-movements" className="space-y-6">
+          <StockMovements />
         </TabsContent>
 
-        <TabsContent value="stock-alerts" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Stock Alerts</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-12 text-muted-foreground">
-                <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p className="text-lg font-medium mb-2">Stock alerts feature coming soon</p>
-                <p>Set up automated alerts for low stock and out of stock items.</p>
-              </div>
-            </CardContent>
-          </Card>
+        <TabsContent value="stock-alerts" className="space-y-6">
+          <StockAlerts />
         </TabsContent>
       </Tabs>
 
@@ -562,7 +658,8 @@ const Inventory = () => {
         open={showCategoryManagement}
         onOpenChange={setShowCategoryManagement}
       />
-    </div>
+      </div>
+    </TooltipProvider>
   );
 };
 

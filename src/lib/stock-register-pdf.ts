@@ -38,9 +38,7 @@ export const generateStockRegisterPDF = (
     return new Date(dateString).toLocaleDateString('en-IN', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+      day: 'numeric'
     });
   };
 
@@ -66,124 +64,81 @@ export const generateStockRegisterPDF = (
 
   const transactionsWithBalance = calculateRunningBalance(transactions);
 
-  // Header
+  // Calculate summary data
+  const totalPurchases = transactions
+    .filter(t => t.transaction_type === 'purchase')
+    .reduce((sum, t) => sum + t.quantity_delta, 0);
+  
+  const totalSales = Math.abs(transactions
+    .filter(t => t.transaction_type === 'sale')
+    .reduce((sum, t) => sum + t.quantity_delta, 0));
+
+  // Header - Stock Register
   addText('STOCK REGISTER', pageWidth / 2, yPosition, { 
-    fontSize: 18, 
+    fontSize: 20, 
     color: '#1e293b',
     align: 'center'
   });
-  doc.setFontSize(18);
-  doc.setTextColor('#1e293b');
-  doc.text('STOCK REGISTER', pageWidth / 2, yPosition, { align: 'center' });
-  yPosition += 15;
+  yPosition += 20;
 
-  // Product Information
-  addText(`Product: ${product.name}`, 20, yPosition, { fontSize: 14, color: '#374151' });
-  yPosition += 8;
-  addText(`SKU: ${product.sku}`, 20, yPosition, { fontSize: 12, color: '#6b7280' });
-  yPosition += 6;
-  addText(`Current Stock: ${product.current_stock} ${product.unit}`, 20, yPosition, { fontSize: 12, color: '#6b7280' });
-  yPosition += 6;
-  addText(`Unit Price: ${formatCurrency(product.unit_price)}`, 20, yPosition, { fontSize: 12, color: '#6b7280' });
-  yPosition += 6;
-  addText(`Generated on: ${new Date().toLocaleDateString('en-IN')}`, 20, yPosition, { fontSize: 10, color: '#9ca3af' });
-  yPosition += 15;
+  // Product name (left) and Summary stats (right)
+  const leftX = 20;
+  const rightX = pageWidth - 120;
+  
+  // Left side - Product name
+  addText(product.name, leftX, yPosition, { fontSize: 16, color: '#1f2937' });
+  addText(`SKU: ${product.sku}`, leftX, yPosition + 8, { fontSize: 10, color: '#6b7280' });
+  
+  // Right side - Summary stats
+  addText('SUMMARY', rightX, yPosition, { fontSize: 12, color: '#374151' });
+  addText(`Purchases: ${totalPurchases} ${product.unit}`, rightX, yPosition + 8, { fontSize: 10, color: '#059669' });
+  addText(`Sales: ${totalSales} ${product.unit}`, rightX, yPosition + 16, { fontSize: 10, color: '#dc2626' });
+  addText(`Closing: ${product.current_stock} ${product.unit}`, rightX, yPosition + 24, { fontSize: 10, color: '#1f2937' });
+  
+  yPosition += 35;
 
-  // Summary Section
+  // Transaction List
   if (transactions.length > 0) {
-    addText('SUMMARY', 20, yPosition, { fontSize: 14, color: '#374151' });
-    yPosition += 10;
-
-    const totalPurchases = transactions
-      .filter(t => t.transaction_type === 'purchase')
-      .reduce((sum, t) => sum + t.quantity_delta, 0);
-    
-    const totalSales = Math.abs(transactions
-      .filter(t => t.transaction_type === 'sale')
-      .reduce((sum, t) => sum + t.quantity_delta, 0));
-
-    addText(`Total Purchases: ${totalPurchases} ${product.unit}`, 20, yPosition, { fontSize: 11 });
-    yPosition += 6;
-    addText(`Total Sales: ${totalSales} ${product.unit}`, 20, yPosition, { fontSize: 11 });
-    yPosition += 6;
-    addText(`Current Balance: ${product.current_stock} ${product.unit}`, 20, yPosition, { fontSize: 11 });
-    yPosition += 6;
-    addText(`Total Transactions: ${transactions.length}`, 20, yPosition, { fontSize: 11 });
-    yPosition += 15;
-  }
-
-  // Table Header
-  if (transactions.length > 0) {
-    addLine(20, yPosition, pageWidth - 20, yPosition);
-    yPosition += 5;
-    
-    // Table headers
-    const headers = ['Date', 'Type', 'Ref No', 'Quantity', 'Unit Cost', 'Total Value', 'Balance', 'Notes'];
-    const colWidths = [25, 20, 25, 20, 20, 20, 15, 30];
-    let xPosition = 20;
-
-    headers.forEach((header, index) => {
-      addText(header, xPosition, yPosition, { fontSize: 9, color: '#374151' });
-      xPosition += colWidths[index];
-    });
-    
+    // Column headers
+    const colWidth = (pageWidth - 40) / 5;
+    addText('DATE', 20, yPosition, { fontSize: 8, color: '#6b7280' });
+    addText('INVOICE', 20 + colWidth, yPosition, { fontSize: 8, color: '#6b7280' });
+    addText('TYPE', 20 + (colWidth * 2), yPosition, { fontSize: 8, color: '#6b7280' });
+    addText('QTY', 20 + (colWidth * 3), yPosition, { fontSize: 8, color: '#6b7280' });
+    addText('CLOSING', 20 + (colWidth * 4), yPosition, { fontSize: 8, color: '#6b7280' });
     yPosition += 8;
-    addLine(20, yPosition, pageWidth - 20, yPosition);
-    yPosition += 5;
 
-    // Table rows
     transactionsWithBalance.forEach((transaction, index) => {
       // Check if we need a new page
-      if (yPosition > pageHeight - 30) {
+      if (yPosition > pageHeight - 20) {
         doc.addPage();
         yPosition = 20;
       }
 
-      xPosition = 20;
+      // Transaction row
+      const rowY = yPosition;
       
       // Date
-      addText(formatDate(transaction.created_at), xPosition, yPosition, { fontSize: 8 });
-      xPosition += colWidths[0];
+      addText(formatDate(transaction.created_at), 20, rowY, { fontSize: 8, color: '#1f2937' });
+      
+      // Invoice
+      addText(transaction.reference_no || '-', 20 + colWidth, rowY, { fontSize: 8, color: '#1f2937' });
       
       // Type
-      addText(getTransactionLabel(transaction.transaction_type), xPosition, yPosition, { fontSize: 8 });
-      xPosition += colWidths[1];
-      
-      // Reference Number
-      addText(transaction.reference_no || '-', xPosition, yPosition, { fontSize: 8 });
-      xPosition += colWidths[2];
+      addText(getTransactionLabel(transaction.transaction_type), 20 + (colWidth * 2), rowY, { fontSize: 8, color: '#1f2937' });
       
       // Quantity
-      const quantityText = `${transaction.quantity_delta > 0 ? '+' : ''}${transaction.quantity_delta}`;
-      addText(quantityText, xPosition, yPosition, { 
+      const quantityText = `${transaction.quantity_delta > 0 ? '+' : ''}${transaction.quantity_delta} ${product.unit}`;
+      addText(quantityText, 20 + (colWidth * 3), rowY, { 
         fontSize: 8, 
-        color: transaction.quantity_delta > 0 ? '#059669' : '#dc2626' 
+        color: transaction.transaction_type === 'sale' ? '#dc2626' : '#059669' 
       });
-      xPosition += colWidths[3];
       
-      // Unit Cost
-      addText(transaction.unit_cost ? formatCurrency(transaction.unit_cost) : '-', xPosition, yPosition, { fontSize: 8 });
-      xPosition += colWidths[4];
+      // Closing Stock
+      addText(`${transaction.running_balance} ${product.unit}`, 20 + (colWidth * 4), rowY, { fontSize: 8, color: '#1f2937' });
       
-      // Total Value
-      const totalValue = transaction.unit_cost ? transaction.unit_cost * Math.abs(transaction.quantity_delta) : 0;
-      addText(transaction.unit_cost ? formatCurrency(totalValue) : '-', xPosition, yPosition, { fontSize: 8 });
-      xPosition += colWidths[5];
-      
-      // Balance
-      addText(`${transaction.running_balance}`, xPosition, yPosition, { fontSize: 8 });
-      xPosition += colWidths[6];
-      
-      // Notes
-      const notes = transaction.notes || '-';
-      const truncatedNotes = notes.length > 25 ? notes.substring(0, 25) + '...' : notes;
-      addText(truncatedNotes, xPosition, yPosition, { fontSize: 8 });
-      
-      yPosition += 6;
+      yPosition += 6; // Minimal space between rows
     });
-
-    // Final line
-    addLine(20, yPosition, pageWidth - 20, yPosition);
   } else {
     // No transactions message
     addText('No stock transactions found for this product.', pageWidth / 2, yPosition, { 
@@ -211,4 +166,12 @@ export const downloadStockRegisterPDF = (
   const doc = generateStockRegisterPDF(product, transactions);
   const fileName = `Stock_Register_${product.sku}_${new Date().toISOString().split('T')[0]}.pdf`;
   doc.save(fileName);
+};
+
+export const generateStockRegisterPDFBlob = async (
+  product: Product,
+  transactions: StockTransaction[]
+): Promise<Blob> => {
+  const doc = generateStockRegisterPDF(product, transactions);
+  return doc.output('blob');
 };

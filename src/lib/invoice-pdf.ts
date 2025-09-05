@@ -496,15 +496,15 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
       <div class="invoice-container">
         <div class="header">
           <div class="company-info">
-          <div class="company-name">${settings.companyName}</div>
-          <div class="company-tagline">${settings.companyTagline}</div>
+          <div class="company-name">EZAZUL HAQUE</div>
+          <div class="company-tagline">Proprietor of BIO TECH CENTRE</div>
               </div>
         <div class="invoice-header">
           <div class="invoice-title">Invoice</div>
           <div class="invoice-details">
             <div class="invoice-detail-row">
-              <span class="invoice-label">Invoice No #:</span>
-              <span class="invoice-value">${invoice.invoice_number}</span>
+              <span class="invoice-label">Invoice No:</span>
+              <span class="invoice-value">BTC-${invoice.invoice_number.replace('INV-', '')}/25-26</span>
             </div>
             <div class="invoice-detail-row">
               <span class="invoice-label">Invoice Date:</span>
@@ -515,12 +515,21 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
       </div>
 
       <div class="billing-section">
+        <div class="billed-from">
+          <div class="section-title">Billed By</div>
+          <div class="billing-info">
+            <div class="billing-name">Ezazul Haque</div>
+            <div class="billing-address">Nalhati to Rajgram Road, Vill :- Kaigoria, Post :- Diha, West Bengal, India - 731220</div>
+            <div class="gstin">GSTIN: 19ADOPH4023K1ZD</div>
+            <div class="pan">PAN: ADOPH4023K</div>
+          </div>
+        </div>
+
         <div class="billed-to">
           <div class="section-title">Billed To</div>
           <div class="billing-info">
-            <div class="billing-name">
-              ${invoice.customer?.name || invoice.guest_name || "Guest Customer"}
-            </div>
+            ${(invoice.customer?.name || invoice.guest_name) ? 
+              `<div class="billing-name">${invoice.customer?.name || invoice.guest_name}</div>` : ''}
             ${((invoice.customer as Customer)?.email || invoice.guest_email) ? 
               `<div class="billing-address">Email: ${(invoice.customer as Customer)?.email || invoice.guest_email}</div>` : ''}
             ${((invoice.customer as Customer)?.phone || invoice.guest_phone) ? 
@@ -531,16 +540,6 @@ const generateDefaultTemplate = (invoice: Invoice, invoiceItems: InvoiceItem[], 
               `<div class="billing-address">${[(invoice.customer as Customer)?.city, (invoice.customer as Customer)?.state, (invoice.customer as Customer)?.pincode].filter(Boolean).join(', ')}</div>` : ''}
             ${(invoice.customer?.gstin || invoice.guest_gstin) ? 
               `<div class="gstin">GSTIN: ${invoice.customer?.gstin || invoice.guest_gstin}</div>` : ''}
-          </div>
-        </div>
-
-        <div class="billed-from">
-          <div class="section-title">Billed By</div>
-          <div class="billing-info">
-            <div class="billing-name">Ezazul Haque</div>
-            <div class="billing-address">Nalhati to Rajgram Road, Vill :- Kaigoria, Post :- Diha, West Bengal, India - 731220</div>
-            <div class="gstin">GSTIN: 19ADOPH4023K1ZD</div>
-            <div class="pan">PAN: ADOPH4023K</div>
           </div>
         </div>
       </div>
@@ -860,15 +859,15 @@ export const downloadInvoiceHTML = (invoice: Invoice, invoiceItems: InvoiceItem[
   <div class="header">
     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; border-bottom: 2px solid #e5e7eb; padding-bottom: 20px;">
       <div>
-        <h2 style="margin: 0; font-size: 2.5em; font-weight: bold; color: #1e293b;">Bio Tech Centre</h2>
-        <p style="margin: 0; color: #64748b; font-size: 1em;">Professional Bio-Technology Solutions</p>
+        <h2 style="margin: 0; font-size: 2.5em; font-weight: bold; color: #1e293b;">EZAZUL HAQUE</h2>
+        <p style="margin: 0; color: #64748b; font-size: 1em;">Proprietor of BIO TECH CENTRE</p>
       </div>
       <div style="text-align: right;">
         <div style="font-size: 2.5em; font-weight: bold; color: #1e293b; margin-bottom: 20px;">Invoice</div>
         <div style="line-height: 1.8;">
           <div style="display: flex; justify-content: flex-end; gap: 10px;">
-            <span style="font-weight: bold; color: #374151;">Invoice No #:</span>
-            <span style="color: #1e293b;">${invoice.invoice_number}</span>
+            <span style="font-weight: bold; color: #374151;">Invoice No:</span>
+            <span style="color: #1e293b;">BTC-${invoice.invoice_number.replace('INV-', '')}/25-26</span>
     </div>
           <div style="display: flex; justify-content: flex-end; gap: 10px;">
             <span style="font-weight: bold; color: #374151;">Invoice Date:</span>
@@ -881,11 +880,20 @@ export const downloadInvoiceHTML = (invoice: Invoice, invoiceItems: InvoiceItem[
   
   <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 30px;">
     <div style="border: 1px solid #e5e7eb; padding: 20px; border-radius: 8px;">
+      <h3 style="font-size: 1.3em; font-weight: bold; color: #1e293b; margin-bottom: 15px; text-transform: uppercase;">Billed By</h3>
+      <div style="line-height: 1.8;">
+        <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 10px; color: #1e293b;">Ezazul Haque</div>
+        <div style="color: #64748b; margin-bottom: 8px;">Nalhati to Rajgram Road, Vill :- Kaigoria, Post :- Diha, West Bengal, India - 731220</div>
+        <div style="font-family: 'Courier New', monospace; background: #f8fafc; padding: 4px 8px; border-radius: 4px; display: inline-block; margin: 4px 8px 4px 0; font-size: 0.9em;">GSTIN: 19ADOPH4023K1ZD</div>
+        <div style="font-family: 'Courier New', monospace; background: #f8fafc; padding: 4px 8px; border-radius: 4px; display: inline-block; margin: 4px 8px 4px 0; font-size: 0.9em;">PAN: ADOPH4023K</div>
+      </div>
+    </div>
+  
+    <div style="border: 1px solid #e5e7eb; padding: 20px; border-radius: 8px;">
       <h3 style="font-size: 1.3em; font-weight: bold; color: #1e293b; margin-bottom: 15px; text-transform: uppercase;">Billed To</h3>
       <div style="line-height: 1.8;">
-        <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 10px; color: #1e293b;">
-          ${invoice.customer?.name || invoice.guest_name || "Guest Customer"}
-        </div>
+        ${(invoice.customer?.name || invoice.guest_name) ? 
+          `<div style="font-size: 1.2em; font-weight: bold; margin-bottom: 10px; color: #1e293b;">${invoice.customer?.name || invoice.guest_name}</div>` : ''}
         ${((invoice.customer as Customer)?.email || invoice.guest_email) ? 
           `<div style="color: #64748b; margin-bottom: 4px;">Email: ${(invoice.customer as Customer)?.email || invoice.guest_email}</div>` : ''}
         ${((invoice.customer as Customer)?.phone || invoice.guest_phone) ? 
@@ -896,16 +904,6 @@ export const downloadInvoiceHTML = (invoice: Invoice, invoiceItems: InvoiceItem[
           `<div style="color: #64748b; margin-bottom: 8px;">${[(invoice.customer as Customer)?.city, (invoice.customer as Customer)?.state, (invoice.customer as Customer)?.pincode].filter(Boolean).join(', ')}</div>` : ''}
         ${(invoice.customer?.gstin || invoice.guest_gstin) ? 
           `<div style="font-family: 'Courier New', monospace; background: #f8fafc; padding: 4px 8px; border-radius: 4px; display: inline-block; margin: 4px 8px 4px 0; font-size: 0.9em;">GSTIN: ${invoice.customer?.gstin || invoice.guest_gstin}</div>` : ''}
-      </div>
-  </div>
-  
-    <div style="border: 1px solid #e5e7eb; padding: 20px; border-radius: 8px;">
-      <h3 style="font-size: 1.3em; font-weight: bold; color: #1e293b; margin-bottom: 15px; text-transform: uppercase;">Billed By</h3>
-      <div style="line-height: 1.8;">
-        <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 10px; color: #1e293b;">Ezazul Haque</div>
-        <div style="color: #64748b; margin-bottom: 8px;">Nalhati to Rajgram Road, Vill :- Kaigoria, Post :- Diha, West Bengal, India - 731220</div>
-        <div style="font-family: 'Courier New', monospace; background: #f8fafc; padding: 4px 8px; border-radius: 4px; display: inline-block; margin: 4px 8px 4px 0; font-size: 0.9em;">GSTIN: 19ADOPH4023K1ZD</div>
-        <div style="font-family: 'Courier New', monospace; background: #f8fafc; padding: 4px 8px; border-radius: 4px; display: inline-block; margin: 4px 8px 4px 0; font-size: 0.9em;">PAN: ADOPH4023K</div>
       </div>
     </div>
   </div>
@@ -1043,31 +1041,31 @@ export const sendInvoiceToTelegram = async (
   telegramSettings: { telegramBotToken: string; telegramChatId: string }
 ): Promise<boolean> => {
   try {
-    // Generate HTML content
-    const settings = getInvoiceSettings();
+    // Generate PDF blob
+    const pdfBlob = await generateInvoicePDFBlob(invoice, invoiceItems);
     
-    let htmlContent: string;
-
-    // Check if custom template should be used
-    if (settings.useCustomTemplate && settings.customTemplateFile) {
-      try {
-        htmlContent = await processCustomTemplate(settings.customTemplateFile, invoice, invoiceItems, settings);
-      } catch (error) {
-        console.error('Custom template processing failed:', error);
-        // Fall back to default template
-        htmlContent = generateDefaultTemplate(invoice, invoiceItems, settings);
-      }
+    // Create filename with BTC format and customer name if available
+    let filename: string;
+    const invoiceNumber = invoice.invoice_number.replace('INV-', ''); // Remove INV- prefix
+    const btcNumber = `BTC-${invoiceNumber}`;
+    
+    if (invoice.customer?.name) {
+      // Use existing customer name
+      const customerName = invoice.customer.name.replace(/[^a-zA-Z0-9\s]/g, ''); // Keep only alphanumeric and spaces
+      filename = `${btcNumber} ${customerName}.pdf`;
+    } else if (invoice.guest_name) {
+      // Use guest customer name
+      const guestName = invoice.guest_name.replace(/[^a-zA-Z0-9\s]/g, ''); // Keep only alphanumeric and spaces
+      filename = `${btcNumber} ${guestName}.pdf`;
     } else {
-      htmlContent = generateDefaultTemplate(invoice, invoiceItems, settings);
+      // No customer name available
+      filename = `${btcNumber}.pdf`;
     }
-
-    // Create a Blob with the HTML content
-    const htmlBlob = new Blob([htmlContent], { type: 'text/html' });
     
-    // Send to Telegram as HTML file
+    // Send to Telegram as PDF file
     const success = await sendFileToTelegram(
-      htmlBlob,
-      `invoice-${invoice.invoice_number}.html`,
+      pdfBlob,
+      filename,
       telegramSettings
     );
     

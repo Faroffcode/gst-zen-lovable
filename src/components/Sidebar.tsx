@@ -40,7 +40,7 @@ export const Sidebar = ({ open }: SidebarProps) => {
       )}
       
       <aside className={cn(
-        "fixed left-0 top-16 h-[calc(100vh-4rem)] bg-card border-r transition-all duration-300 z-30",
+        "fixed left-0 top-0 h-screen bg-card border-r transition-all duration-300 z-30",
         "md:translate-x-0",
         open ? "w-64 translate-x-0" : "w-16 -translate-x-full md:translate-x-0"
       )}>
