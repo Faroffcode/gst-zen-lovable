@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, TrendingDown, DollarSign, Package, Users, FileText, AlertTriangle, Eye, IndianRupee, XCircle } from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, Package, Users, FileText, AlertTriangle, Eye, IndianRupee, XCircle, ShoppingCart, TrendingUp as TrendingUpIcon } from "lucide-react";
 import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
 import { useProducts } from "@/hooks/useProducts";
 import { useInvoices } from "@/hooks/useInvoices";
@@ -101,14 +101,39 @@ export const Dashboard = () => {
     };
   }, [invoices, customers, stockTransactions]);
 
-  // Get top products by stock value
+  // Calculate purchase statistics
+  const purchaseStats = useMemo(() => {
+    const purchaseTransactions = stockTransactions.filter(transaction => 
+      transaction.transaction_type === 'purchase'
+    );
+    
+    const totalPurchaseQuantity = purchaseTransactions.reduce(
+      (sum, transaction) => sum + Math.abs(transaction.quantity_delta), 0
+    );
+    
+    const thisMonth = new Date();
+    thisMonth.setDate(1);
+    
+    const thisMonthPurchases = purchaseTransactions.filter(transaction => 
+      new Date(transaction.created_at) >= thisMonth
+    );
+    
+    const thisMonthQuantity = thisMonthPurchases.reduce(
+      (sum, transaction) => sum + Math.abs(transaction.quantity_delta), 0
+    );
+    
+    return {
+      totalPurchases: purchaseTransactions.length,
+      totalQuantity: totalPurchaseQuantity,
+      thisMonthPurchases: thisMonthPurchases.length,
+      thisMonthQuantity
+    };
+  }, [stockTransactions]);
+
+  // Get top products by stock quantity
   const topProducts = useMemo(() => {
     return products
-      .map(product => ({
-        ...product,
-        stockValue: product.current_stock * product.unit_price
-      }))
-      .sort((a, b) => b.stockValue - a.stockValue)
+      .sort((a, b) => b.current_stock - a.current_stock)
       .slice(0, 5);
   }, [products]);
 
@@ -146,61 +171,96 @@ export const Dashboard = () => {
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title="Total Products"
-          value={inventoryStats.totalProducts}
-          icon={Package}
-          type="number"
-        />
-        <StatCard
-          title="Inventory Value"
-          value={inventoryStats.totalInventoryValue}
-          icon={IndianRupee}
-          type="currency"
-        />
-        <StatCard
-          title="Today's Revenue"
-          value={activityStats.todayRevenue}
-          icon={DollarSign}
-          type="currency"
-        />
-        <StatCard
-          title="Total Customers"
-          value={activityStats.totalCustomers}
-          icon={Users}
-          type="number"
-        />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Inventory Summary */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Package className="h-5 w-5" />
-              Inventory Summary
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Overview Card */}
+        <Card className="hover:shadow-elegant transition-all duration-300">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <Package className="h-4 w-4" />
+              Overview
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center p-4 bg-gradient-subtle rounded-lg">
-                <div className="text-2xl font-bold text-primary">{inventoryStats.totalStock}</div>
-                <div className="text-sm text-muted-foreground">Total Items in Stock</div>
-              </div>
-              <div className="text-center p-4 bg-gradient-subtle rounded-lg">
-                <div className="text-2xl font-bold text-success">₹{inventoryStats.totalInventoryValue.toLocaleString()}</div>
-                <div className="text-sm text-muted-foreground">Total Value</div>
+          <CardContent className="space-y-3">
+            <div className="flex justify-center">
+              <div className="text-center p-3 bg-gradient-subtle rounded-lg min-w-40">
+                <div className="text-xl font-bold text-primary">{inventoryStats.totalProducts}</div>
+                <div className="text-xs text-muted-foreground">Total Products</div>
               </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-4 mt-4">
-              <div className="text-center p-3 bg-warning/10 border border-warning/20 rounded-lg">
-                <div className="text-lg font-bold text-warning">{inventoryStats.lowStockCount}</div>
-                <div className="text-xs text-muted-foreground">Low Stock Items</div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="text-center p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center justify-center mb-1">
+                  <Users className="h-3 w-3 text-blue-600 mr-1" />
+                </div>
+                <div className="text-base font-bold text-blue-600">{activityStats.totalCustomers}</div>
+                <div className="text-xs text-muted-foreground">Customers</div>
               </div>
-              <div className="text-center p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-                <div className="text-lg font-bold text-destructive">{inventoryStats.outOfStockCount}</div>
+              <div className="text-center p-2 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center justify-center mb-1">
+                  <TrendingUp className="h-3 w-3 text-green-600 mr-1" />
+                </div>
+                <div className="text-base font-bold text-green-600">{inventoryStats.totalStock}</div>
+                <div className="text-xs text-muted-foreground">In Stock</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Purchase Stats Card */}
+        <Card className="hover:shadow-elegant transition-all duration-300">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <ShoppingCart className="h-3 w-3" />
+              Purchases
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <TrendingUpIcon className="h-3 w-3 text-green-600" />
+                <span className="text-xs font-medium text-muted-foreground">Total</span>
+              </div>
+              <span className="text-base font-bold">{purchaseStats.totalPurchases}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileText className="h-3 w-3 text-blue-600" />
+                <span className="text-xs font-medium text-muted-foreground">This Month</span>
+              </div>
+              <span className="text-base font-bold">{purchaseStats.thisMonthPurchases}</span>
+            </div>
+            <div className="pt-1 border-t">
+              <div className="text-center">
+                <div className="text-xs font-bold text-primary">{purchaseStats.totalQuantity}</div>
+                <div className="text-xs text-muted-foreground">Total Quantity</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        {/* Inventory Summary */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <Package className="h-4 w-4" />
+              Inventory Summary
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex justify-center">
+              <div className="text-center p-3 bg-gradient-subtle rounded-lg min-w-40">
+                <div className="text-xl font-bold text-primary">{inventoryStats.totalStock}</div>
+                <div className="text-xs text-muted-foreground">Total Items in Stock</div>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <div className="text-center p-2 bg-warning/10 border border-warning/20 rounded-lg">
+                <div className="text-base font-bold text-warning">{inventoryStats.lowStockCount}</div>
+                <div className="text-xs text-muted-foreground">Low Stock</div>
+              </div>
+              <div className="text-center p-2 bg-destructive/10 border border-destructive/20 rounded-lg">
+                <div className="text-base font-bold text-destructive">{inventoryStats.outOfStockCount}</div>
                 <div className="text-xs text-muted-foreground">Out of Stock</div>
               </div>
             </div>
@@ -218,40 +278,38 @@ export const Dashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Top Products by Value */}
+        {/* Top Products by Stock */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Top Products by Stock Value</CardTitle>
-            <Button variant="ghost" size="sm">
-              <Eye className="h-4 w-4 mr-2" />
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <CardTitle className="text-sm">Top Products by Stock</CardTitle>
+            <Button variant="ghost" size="sm" className="h-7 px-2">
+              <Eye className="h-3 w-3 mr-1" />
               View All
             </Button>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {topProducts.length > 0 ? (
-                topProducts.map((product, index) => (
-                  <div key={product.id} className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="font-medium truncate">{product.name}</div>
-                      <div className="text-sm text-muted-foreground">
-                        Stock: {product.current_stock} {product.unit} | Unit Price: ₹{product.unit_price}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-medium">₹{product.stockValue.toLocaleString()}</div>
-                      <div className="text-xs text-muted-foreground">Total Value</div>
+          <CardContent className="space-y-2">
+            {topProducts.length > 0 ? (
+              topProducts.map((product, index) => (
+                <div key={product.id} className="flex items-center justify-between py-1">
+                  <div className="flex-1">
+                    <div className="font-medium truncate text-sm">{product.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      SKU: {product.sku} | {product.category}
                     </div>
                   </div>
-                ))
-              ) : (
-                <div className="text-center py-4 text-muted-foreground">
-                  <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No products found</p>
-                  <p className="text-xs">Add some products to see them here</p>
+                  <div className="text-right">
+                    <div className="font-medium text-base">{product.current_stock}</div>
+                    <div className="text-xs text-muted-foreground">{product.unit}</div>
+                  </div>
                 </div>
-              )}
-            </div>
+              ))
+            ) : (
+              <div className="text-center py-3 text-muted-foreground">
+                <Package className="h-6 w-6 mx-auto mb-1 opacity-50" />
+                <p className="text-xs">No products found</p>
+                <p className="text-xs">Add some products to see them here</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

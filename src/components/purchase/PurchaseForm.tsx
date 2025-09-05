@@ -10,6 +10,8 @@ import { Separator } from "@/components/ui/separator";
 import { Plus, Search, Package } from "lucide-react";
 import { useProducts, useAddProduct, Product } from "@/hooks/useProducts";
 import { useRecordPurchase } from "@/hooks/useStockLedger";
+import { useCategories } from "@/hooks/useCategories";
+import { useUnits } from "@/hooks/useUnits";
 
 interface PurchaseFormData {
   product_id: string;
@@ -34,10 +36,27 @@ export const PurchaseForm = ({ onSuccess, onCancel }: PurchaseFormProps) => {
   const [isNewProduct, setIsNewProduct] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [categoryQuery, setCategoryQuery] = useState("");
+  const [unitQuery, setUnitQuery] = useState("");
+  const [showCategorySuggestions, setShowCategorySuggestions] = useState(false);
+  const [showUnitSuggestions, setShowUnitSuggestions] = useState(false);
 
   const { data: products = [] } = useProducts();
   const addProduct = useAddProduct();
   const recordPurchase = useRecordPurchase();
+  const { data: categories = [], isLoading: categoriesLoading } = useCategories();
+  const { data: units = [], isLoading: unitsLoading } = useUnits();
+
+  // Filter categories based on search query
+  const filteredCategories = categories.filter(category =>
+    category.name.toLowerCase().includes(categoryQuery.toLowerCase())
+  );
+
+  // Filter units based on search query
+  const filteredUnits = units.filter(unit =>
+    unit.name.toLowerCase().includes(unitQuery.toLowerCase()) ||
+    unit.abbreviation.toLowerCase().includes(unitQuery.toLowerCase())
+  );
 
   const {
     register,
@@ -224,20 +243,44 @@ export const PurchaseForm = ({ onSuccess, onCancel }: PurchaseFormProps) => {
                 />
               </div>
 
-              <div>
+              <div className="relative">
                 <Label htmlFor="category">Category</Label>
-                <Select onValueChange={(value) => setValue("category", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="General">General</SelectItem>
-                    <SelectItem value="Fertilizers">Fertilizers</SelectItem>
-                    <SelectItem value="Pesticides">Pesticides</SelectItem>
-                    <SelectItem value="Seeds">Seeds</SelectItem>
-                    <SelectItem value="Tools">Tools</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Input
+                  id="category"
+                  value={categoryQuery}
+                  onChange={(e) => {
+                    setCategoryQuery(e.target.value);
+                    setValue("category", e.target.value);
+                    setShowCategorySuggestions(true);
+                  }}
+                  onFocus={() => setShowCategorySuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowCategorySuggestions(false), 200)}
+                  placeholder={categoriesLoading ? "Loading categories..." : "Type or select category"}
+                  disabled={categoriesLoading}
+                />
+                {showCategorySuggestions && filteredCategories.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                    {filteredCategories.map((category) => (
+                      <div
+                        key={category.id}
+                        className="p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
+                        onClick={() => {
+                          setCategoryQuery(category.name);
+                          setValue("category", category.name);
+                          setShowCategorySuggestions(false);
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: category.color }}
+                          />
+                          {category.name}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -249,21 +292,41 @@ export const PurchaseForm = ({ onSuccess, onCancel }: PurchaseFormProps) => {
                 />
               </div>
 
-              <div>
+              <div className="relative">
                 <Label htmlFor="unit">Unit</Label>
-                <Select onValueChange={(value) => setValue("unit", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select unit" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="kg">Kilogram (kg)</SelectItem>
-                    <SelectItem value="ltr">Liter (ltr)</SelectItem>
-                    <SelectItem value="pcs">Pieces (pcs)</SelectItem>
-                    <SelectItem value="bag">Bag</SelectItem>
-                    <SelectItem value="bags">Bags</SelectItem>
-                    <SelectItem value="bottles">Bottles</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Input
+                  id="unit"
+                  value={unitQuery}
+                  onChange={(e) => {
+                    setUnitQuery(e.target.value);
+                    setValue("unit", e.target.value);
+                    setShowUnitSuggestions(true);
+                  }}
+                  onFocus={() => setShowUnitSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowUnitSuggestions(false), 200)}
+                  placeholder={unitsLoading ? "Loading units..." : "Type or select unit"}
+                  disabled={unitsLoading}
+                />
+                {showUnitSuggestions && filteredUnits.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                    {filteredUnits.map((unit) => (
+                      <div
+                        key={unit.id}
+                        className="p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
+                        onClick={() => {
+                          setUnitQuery(unit.abbreviation);
+                          setValue("unit", unit.abbreviation);
+                          setShowUnitSuggestions(false);
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{unit.abbreviation}</span>
+                          <span className="text-muted-foreground">({unit.name})</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div>

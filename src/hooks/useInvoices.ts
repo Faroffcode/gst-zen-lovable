@@ -254,6 +254,33 @@ export const useCreateInvoice = () => {
         if (stockError) throw stockError;
       }
 
+      // Create stock register entries for each product sold
+      const stockRegisterPromises = invoiceData.items
+        .filter(item => item.product_id) // Only process items with actual product IDs
+        .map(async (item) => {
+          try {
+            const { error } = await supabase
+              .rpc("insert_stock_register_entry", {
+                p_product_id: item.product_id!,
+                p_date: invoiceData.invoice_date,
+                p_invoice: invoiceNumber,
+                p_type: "sale",
+                p_quantity: item.quantity
+              });
+            
+            if (error) {
+              console.error(`Failed to create stock register entry for product ${item.product_id}:`, error);
+              // Don't throw error here to avoid breaking invoice creation
+              // The stock ledger entry was already created above
+            }
+          } catch (error) {
+            console.error(`Error creating stock register entry for product ${item.product_id}:`, error);
+          }
+        });
+
+      // Wait for all stock register entries to complete (but don't fail if they don't)
+      await Promise.allSettled(stockRegisterPromises);
+
       return invoice;
     },
     onSuccess: async (invoice) => {

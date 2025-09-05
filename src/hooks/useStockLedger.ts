@@ -113,11 +113,32 @@ export const useRecordPurchase = () => {
         .single();
       
       if (error) throw error;
+      
+      // Also create stock register entry
+      try {
+        const { error: stockRegisterError } = await supabase
+          .rpc("insert_stock_register_entry", {
+            p_product_id: purchaseData.product_id,
+            p_date: new Date().toISOString().split('T')[0], // Today's date
+            p_invoice: purchaseData.reference_no || `PUR-${Date.now()}`, // Use reference or generate one
+            p_type: "purchase",
+            p_quantity: purchaseData.quantity_delta
+          });
+        
+        if (stockRegisterError) {
+          console.error('Failed to create stock register entry:', stockRegisterError);
+          // Don't throw error here to avoid breaking purchase recording
+        }
+      } catch (error) {
+        console.error('Error creating stock register entry:', error);
+      }
+      
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["stock-transactions"] });
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["stock-register"] });
       toast({
         title: "Success",
         description: "Purchase recorded successfully",

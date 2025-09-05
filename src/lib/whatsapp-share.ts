@@ -7,40 +7,59 @@ export const shareInvoiceToWhatsApp = async (invoice: Invoice, invoiceItems: Inv
     // Generate PDF blob
     const pdfBlob = await generateInvoicePDFBlob(invoice, invoiceItems);
     
-    // Create a temporary URL for the PDF
-    const pdfUrl = URL.createObjectURL(pdfBlob);
-    
     // Create filename
     const invoiceNumber = invoice.invoice_number.replace('INV-', '');
     const btcNumber = `BTC-${invoiceNumber}`;
     const customerName = invoice.customer?.name || invoice.guest_name || 'Customer';
     const filename = `${btcNumber} ${customerName}.pdf`;
     
-    // Create a temporary link element to download the PDF
-    const link = document.createElement('a');
-    link.href = pdfUrl;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Create a File object from the blob
+    const pdfFile = new File([pdfBlob], filename, { type: 'application/pdf' });
     
-    // Clean up the URL
-    setTimeout(() => URL.revokeObjectURL(pdfUrl), 1000);
-    
-    // Prepare WhatsApp message
-    const message = `📄 *Invoice ${btcNumber}*\n\n` +
-      `Customer: ${customerName}\n` +
-      `Date: ${new Date(invoice.invoice_date).toLocaleDateString('en-IN')}\n` +
-      `Amount: ₹${invoice.total_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}\n\n` +
-      `Please find the invoice PDF attached.`;
-    
-    // Create WhatsApp share URL
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-    
-    // Open WhatsApp in a new tab
-    window.open(whatsappUrl, '_blank');
-    
-    return { success: true };
+    // Check if Web Share API is supported
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+      // Use Web Share API to share the PDF file
+      await navigator.share({
+        title: `Invoice ${btcNumber}`,
+        text: `📄 *Invoice ${btcNumber}*\n\n` +
+              `Customer: ${customerName}\n` +
+              `Date: ${new Date(invoice.invoice_date).toLocaleDateString('en-IN')}\n` +
+              `Amount: ₹${invoice.total_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}\n\n` +
+              `Please find the invoice PDF attached.`,
+        files: [pdfFile]
+      });
+      
+      return { success: true };
+    } else {
+      // Fallback: Download PDF and open WhatsApp with text message
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      
+      // Create a temporary link element to download the PDF
+      const link = document.createElement('a');
+      link.href = pdfUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up the URL
+      setTimeout(() => URL.revokeObjectURL(pdfUrl), 1000);
+      
+      // Prepare WhatsApp message
+      const message = `📄 *Invoice ${btcNumber}*\n\n` +
+        `Customer: ${customerName}\n` +
+        `Date: ${new Date(invoice.invoice_date).toLocaleDateString('en-IN')}\n` +
+        `Amount: ₹${invoice.total_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}\n\n` +
+        `Please find the invoice PDF attached.`;
+      
+      // Create WhatsApp share URL
+      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+      
+      // Open WhatsApp in a new tab
+      window.open(whatsappUrl, '_blank');
+      
+      return { success: true, fallback: true };
+    }
   } catch (error) {
     console.error('Error sharing invoice to WhatsApp:', error);
     return { success: false, error: error as Error };

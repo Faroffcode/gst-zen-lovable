@@ -137,10 +137,17 @@ export const ViewInvoiceDialog = ({ open, onOpenChange, invoice, onDownload }: V
       );
       
       if (result.success) {
-        toast({
-          title: "Success",
-          description: "Invoice shared to WhatsApp! PDF downloaded and WhatsApp opened.",
-        });
+        if (result.fallback) {
+          toast({
+            title: "Success",
+            description: "PDF downloaded! WhatsApp opened with message. Please attach the PDF manually.",
+          });
+        } else {
+          toast({
+            title: "Success",
+            description: "Invoice PDF shared to WhatsApp successfully!",
+          });
+        }
       } else {
         toast({
           title: "Error",

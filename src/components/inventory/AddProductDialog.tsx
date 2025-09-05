@@ -17,7 +17,6 @@ export const AddProductDialog = () => {
     category: "General",
     hsn_code: "",
     unit: "kg",
-    unit_price: "",
     tax_rate: "18.00",
     current_stock: "",
     min_stock: "10",
@@ -32,7 +31,7 @@ export const AddProductDialog = () => {
     e.preventDefault();
     addProduct.mutate({
       ...formData,
-      unit_price: parseFloat(formData.unit_price) || 0,
+      unit_price: 0,
       tax_rate: parseFloat(formData.tax_rate) || 0,
       current_stock: parseInt(formData.current_stock) || 0,
       min_stock: parseInt(formData.min_stock) || 10,
@@ -45,7 +44,6 @@ export const AddProductDialog = () => {
           category: "General",
           hsn_code: "",
           unit: "kg",
-          unit_price: "",
           tax_rate: "18.00",
           current_stock: "",
           min_stock: "10",
@@ -127,7 +125,7 @@ export const AddProductDialog = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="unit">Unit</Label>
               <Select
@@ -148,18 +146,6 @@ export const AddProductDialog = () => {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="unit_price">Unit Price (₹) *</Label>
-              <Input
-                id="unit_price"
-                type="number"
-                step="0.01"
-                value={formData.unit_price}
-                onChange={(e) => setFormData({ ...formData, unit_price: e.target.value })}
-                placeholder="0.00"
-                required
-              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="tax_rate">Tax Rate (%)</Label>
